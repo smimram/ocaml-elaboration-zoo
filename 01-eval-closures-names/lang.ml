@@ -22,6 +22,7 @@ end
 type environment = (string * t) list
 
 (** A value. *)
+(* NB: we could even be more specific by introducing neutral values *)
 and t =
   | Var of string
   | App of t * t
