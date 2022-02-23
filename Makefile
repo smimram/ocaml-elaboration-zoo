@@ -1,4 +1,7 @@
 all: build
 
-build test clean:
+build clean:
 	@dune $@
+
+test:
+	@dune runtest
