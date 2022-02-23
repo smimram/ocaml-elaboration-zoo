@@ -9,6 +9,10 @@
 %token<string> IDENT
 %token EOF
 
+%nonassoc DOT
+%nonassoc IDENT
+%nonassoc LPAR
+
 %start main
 %type<Lang.Term.t> main
 %%

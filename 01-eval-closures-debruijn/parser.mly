@@ -9,6 +9,10 @@
 %token<int> IDENT
 %token EOF
 
+%nonassoc LAMBDA
+%nonassoc IDENT
+%nonassoc LPAR
+
 %start main
 %type<Lang.Term.t> main
 %%
