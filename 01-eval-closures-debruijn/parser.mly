@@ -4,14 +4,14 @@
 %}
 
 %token LET EQ IN
-%token LAMBDA DOT
+%token LAMBDA DOT APP
 %token LPAR RPAR
 %token<int> IDENT
 %token EOF
 
-%nonassoc LAMBDA
-%nonassoc IDENT
-%nonassoc LPAR
+%nonassoc LAMBDA DOT
+%nonassoc IDENT LPAR
+%nonassoc APP
 
 %start main
 %type<Lang.Term.t> main
@@ -26,9 +26,6 @@ def:
 
 term:
     | LAMBDA term { Abs $2 }
-    | term simple_term { App ($1, $2) }
-    | simple_term { $1 }
-
-simple_term:
+    | term term %prec APP { App ($1, $2) }
     | IDENT { Var $1 }
     | LPAR term RPAR { $2 }

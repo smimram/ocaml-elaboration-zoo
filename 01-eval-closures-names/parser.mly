@@ -1,17 +1,21 @@
 %{
-    open Lang
-    open Term
+open Lang
+open Term
+
+(* The trick for function application is explained in
+   https://ptival.github.io/2017/05/16/parser-generators-and-function-application/
+*)
 %}
 
 %token LET EQ IN
-%token LAMBDA DOT
+%token LAMBDA DOT APP
 %token LPAR RPAR
 %token<string> IDENT
 %token EOF
 
-%nonassoc DOT
-%nonassoc IDENT
-%nonassoc LPAR
+%nonassoc LAMBDA DOT
+%nonassoc IDENT LPAR
+%nonassoc APP
 
 %start main
 %type<Lang.Term.t> main
@@ -26,10 +30,7 @@ def:
 
 term:
     | LAMBDA vars DOT term { abs $2 $4 }
-    | term simple_term { App ($1, $2) }
-    | simple_term { $1 }
-
-simple_term:
+    | term term %prec APP { App ($1, $2) }
     | IDENT { Var $1 }
     | LPAR term RPAR { $2 }
 

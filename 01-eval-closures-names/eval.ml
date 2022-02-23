@@ -31,8 +31,8 @@ let () =
       failwith err
   in
   close_in ic;
-  Printf.printf "Term: %s\n%!" (Term.to_string t);
-  Printf.printf "Normalizing... \n%!";
+  Printf.printf "Term:\n%s\n\n%!" (Term.to_string t);
+  Printf.printf "Normalizing... \n\n%!";
   let t = normalize [] t in
   Printf.printf "done.\n\n%!";
   print_endline (Term.to_string t)

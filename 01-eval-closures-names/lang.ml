@@ -15,20 +15,18 @@ module Term = struct
   let rec to_string = function
     | Var x -> x
     | App (t, u) -> "(" ^ to_string t ^ " " ^ to_string u ^ ")"
-    | Abs (x, t) -> Printf.sprintf "λ%s.%s" x (to_string t)
+    | Abs (x, t) -> Printf.sprintf "(λ%s.%s)" x (to_string t)
     | Let (x, t, u) -> Printf.sprintf "let %s = %s in\n%s" x (to_string t) (to_string u)
 end
 
-type environment = (string * t) list
-
 (** A value. *)
 (* NB: we could even be more specific by introducing neutral values *)
-and t =
+type t =
   | Var of string
   | App of t * t
-  | Abs of closure
+  | Abs of environment * string * Term.t  (** A λ-abstraction in an environment. *)
 
-and closure = environment * string * Term.t
+and environment = (string * t) list
 
 (** Compute weak head normal form. *)
 let rec eval (env : environment) = function

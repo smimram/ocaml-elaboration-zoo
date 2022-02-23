@@ -30,14 +30,9 @@ and t =
 
 and closure = environment * Term.t
 
-let rec assoc n l =
-  match l with
-  | x::l -> if n = 0 then x else assoc (n-1) l
-  | [] -> assert false
-
 (** Compute weak head normal form. *)
 let rec eval (env : environment) = function
-  | Term.Var i -> assoc i env
+  | Term.Var i -> List.nth env i
   | Abs t -> Abs (env, t)
   | App (t, u) ->
     let u = eval env u in
