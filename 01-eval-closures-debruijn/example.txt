@@ -6,4 +6,4 @@ let λ λ λ λ 3 (2 1) 0 in          -- mul  = λ a b s z. a (b s) z
 let 1 2 2 in                      -- ten  = add five five
 let 1 0 0 in                      -- hundred = mul ten ten
 let 2 1 0 in                      -- thousand = mul ten hundred
-2                                 -- ten
+0                                 -- ten

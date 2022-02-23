@@ -46,7 +46,7 @@ let rec eval (env : environment) = function
     let t = eval env t in
     eval ((x,t)::env) u
 
-(** Create a fresh variable name among ns based on x. *)
+(** Create a natural fresh variable name among ns based on x. *)
 let rec fresh ns x =
   if x = "_" then "_"
   else if List.mem x ns then fresh ns (x^"'")
@@ -64,4 +64,3 @@ let rec quote ns = function
 (** Compute the normal form of a term. *)
 let normalize env t =
   eval env t |> quote (List.map fst env)
-  

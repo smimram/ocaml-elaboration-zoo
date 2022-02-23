@@ -22,7 +22,7 @@ def:
 
 term:
     | LAMBDA vars DOT term { abs $2 $4 }
-    | simple_term term { App ($1, $2) }
+    | term simple_term { App ($1, $2) }
     | simple_term { $1 }
 
 simple_term:
