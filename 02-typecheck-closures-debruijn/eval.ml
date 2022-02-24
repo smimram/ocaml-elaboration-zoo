@@ -34,6 +34,7 @@ let () =
   Printf.printf "Parsing... done:\n%s\n\n%!" (RawTerm.to_string t);
   Printf.printf "Typechecking... \n%!";
   let t, a = infer [] [] 0 t in
-  (* let t = normalize [] t in *)
   Printf.printf "done: %s\n%s\n\n%!" (Term.to_string (quote 0 a)) (Term.to_string t);
-  (* print_endline (Term.to_string t) *)
+  Printf.printf "Normalizing... \n%!";
+  let t = normalize [] t in
+  Printf.printf "done:\n%s\n%!" (Term.to_string t)

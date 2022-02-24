@@ -28,7 +28,7 @@ def:
 term:
     | LAMBDA vars DOT term { abs $2 $4 }
     | term term %prec APP { App ($1, $2) }
-    | LPAR vars COLON term RPAR TO term { pi $2 $4 $7 }
+    | LPAR IDENT COLON term RPAR TO term { Pi ($2, $4, $7) }
     | term TO term { Pi ("_", $1, $3) }
     | U { U }
     | IDENT { Var $1 }
