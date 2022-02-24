@@ -53,7 +53,7 @@ let rec fresh ns x =
 
 (** Reify normal form. *)
 let rec quote l = function
-  | Var i -> Term.Var (l - i - 1)
+  | Var i -> Term.Var (l-1 - i)
   | App (t, u) -> Term.App (quote l t, quote l u)
   | Abs (env, t) ->
     let t = eval ((Var l)::env) t in
@@ -62,4 +62,3 @@ let rec quote l = function
 (** Compute the normal form of a term. *)
 let normalize env t =
   eval env t |> quote (List.length env)
-  
