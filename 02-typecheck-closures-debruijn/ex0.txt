@@ -1,7 +1,4 @@
 let id : (A : U) -> A -> A = \A x. x in
 let foo : U = U in
-let bar : U = id id in     -- we cannot apply any function to itself (already true in simple TT)
+let bar : (A : U) -> A -> A = id ((A : U) -> A -> A) id in     -- we cannot apply any function to itself (already true in simple TT)
 id
-
--- let id : (A : U) -> A -> A = \A x. x in
--- id

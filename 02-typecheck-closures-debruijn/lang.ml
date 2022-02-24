@@ -24,6 +24,12 @@ module RawTerm = struct
     | [x] -> Abs (x, t)
     | x::xx -> Abs(x, abs xx t)
     | [] -> assert false
+
+  let rec pi xx a b =
+    match xx with
+    | [x] -> Pi(x, a, b)
+    | x::xx -> Pi(x, a, pi xx a b)
+    | [] -> assert false
 end
 
 module Term = struct
@@ -104,6 +110,7 @@ let normalize env t =
 
 (** Type-directed βη-conversion. *)
 let rec conv l t u =
+  (* Printf.printf "conv: %s = %s\n%!" (to_string t) (to_string u); *)
   match t, u with
   | U, U -> true
   | Pi (env, _, a, b), Pi (env', _, a', b') ->
@@ -134,7 +141,8 @@ exception Typing
 exception Inference
 
 (** Check that a term has given type in given environments for terms and
-    types. *)
+    types. In passing, we translate the term in raw presentation into a term in
+    de Bruijn presentation. *)
 let rec check env tenv l t a =
   (* Printf.printf "check: %s : %s\n%!" (RawTerm.to_string t) (to_string a); *)
   match t, a with
@@ -155,6 +163,7 @@ let rec check env tenv l t a =
     if not (conv l b a) then raise Typing;
     t
 
+(** Infer the type for a term. *)
 and infer env tenv l t : Term.t * ty =
   (* Printf.printf "infer: %s\n%!" (RawTerm.to_string t); *)
   match t with
