@@ -1,0 +1,16 @@
+(ocamlyacc
+ (modules parser)
+)
+
+(ocamllex
+ (modules lexer)
+)
+
+(executable
+ (name eval)
+)
+
+(rule
+ (alias runtest)
+ (action (run ./eval.exe ex0.txt))
+)
