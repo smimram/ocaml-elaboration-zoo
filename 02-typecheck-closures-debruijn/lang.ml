@@ -77,7 +77,7 @@ let rec to_string = function
 
 (** Compute weak head normal form. *)
 let rec eval (env : environment) : Term.t -> t = function
-  | Term.Var i -> List.nth env i
+  | Var i -> List.nth env i
   | Abs (x, t) -> Abs (env, x, t)
   | App (t, u) ->
     let u = eval env u in
@@ -93,16 +93,16 @@ let rec eval (env : environment) : Term.t -> t = function
     eval (t::env) u
 
 (** Reify normal form. *)
-let rec quote l = function
-  | Var i -> Term.Var (l-1 - i)
-  | App (t, u) -> Term.App (quote l t, quote l u)
+let rec quote l : t -> Term.t = function
+  | Var i -> Var (l-1 - i)
+  | App (t, u) -> App (quote l t, quote l u)
   | Abs (env, x, t) ->
     let t = eval ((Var l)::env) t in
-    Term.Abs (x, quote (l+1) t)
+    Abs (x, quote (l+1) t)
   | Pi (env, x, a, b) ->
     let b = eval ((Var l)::env) b in
     Pi (x, quote l a, quote (l+1) b)
-  | U -> Term.U
+  | U -> U
 
 (** Compute the normal form of a term. *)
 let normalize env t =
@@ -143,20 +143,20 @@ exception Inference
 (** Check that a term has given type in given environments for terms and
     types. In passing, we translate the term in raw presentation into a term in
     de Bruijn presentation. *)
-let rec check env tenv l t a =
+let rec check env tenv l (t : RawTerm.t) (a : ty) : Term.t =
   (* Printf.printf "check: %s : %s\n%!" (RawTerm.to_string t) (to_string a); *)
   match t, a with
-  | RawTerm.Abs (x, t), Pi (env', _, a, b) ->
+  | Abs (x, t), Pi (env', _, a, b) ->
     let b = eval ((Var l)::env') b in
     let t = check ((Var l)::env) ((x,a)::tenv) (l+1) t b in
-    Term.Abs (x, t)
+    Abs (x, t)
   | Let (x, a, t, u), b ->
     let a = check env tenv l a U in
     let va = eval env a in
     let t = check env tenv l t va in
     let vt = eval env t in
     let u = check (vt::env) ((x,va)::tenv) (l+1) u b in
-    Term.Let (x, a, t, u)
+    Let (x, a, t, u)
   | _ ->
     (* The term cannot be checked, try to infer instead. *)
     let t, b = infer env tenv l t in
@@ -164,10 +164,10 @@ let rec check env tenv l t a =
     t
 
 (** Infer the type for a term. *)
-and infer env tenv l t : Term.t * ty =
+and infer env tenv l (t : RawTerm.t) : Term.t * ty =
   (* Printf.printf "infer: %s\n%!" (RawTerm.to_string t); *)
   match t with
-  | RawTerm.Var x ->
+  | Var x ->
     let rec aux i = function
       | (x',a)::l -> if x' = x then Term.Var i, a else aux (i+1) l
       | [] -> raise Not_found
