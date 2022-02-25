@@ -31,8 +31,8 @@ and t =
 and closure = environment * Term.t
 
 (** Compute weak head normal form. *)
-let rec eval (env : environment) = function
-  | Term.Var i -> List.nth env i
+let rec eval (env : environment) : Term.t -> t = function
+  | Var i -> List.nth env i
   | Abs t -> Abs (env, t)
   | App (t, u) ->
     let u = eval env u in
@@ -52,12 +52,12 @@ let rec fresh ns x =
   else x
 
 (** Reify normal form. *)
-let rec quote l = function
-  | Var i -> Term.Var (l-1 - i)
-  | App (t, u) -> Term.App (quote l t, quote l u)
+let rec quote l : t -> Term.t = function
+  | Var i -> Var (l-1 - i)
+  | App (t, u) -> App (quote l t, quote l u)
   | Abs (env, t) ->
     let t = eval ((Var l)::env) t in
-    Term.Abs (quote (l+1) t)
+    Abs (quote (l+1) t)
 
 (** Compute the normal form of a term. *)
 let normalize env t =

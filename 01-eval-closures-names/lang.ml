@@ -29,8 +29,8 @@ type t =
 and environment = (string * t) list
 
 (** Compute weak head normal form. *)
-let rec eval (env : environment) = function
-  | Term.Var x ->
+let rec eval (env : environment) : Term.t -> t = function
+  | Var x ->
     Option.value ~default:(Var x) (List.assoc_opt x env)
   | Abs (x, t) -> Abs (env, x, t)
   | App (t, u) ->
@@ -51,13 +51,13 @@ let rec fresh ns x =
   else x
 
 (** Reify normal form. *)
-let rec quote ns = function
-  | Var x -> Term.Var x
-  | App (t, u) -> Term.App (quote ns t, quote ns u)
+let rec quote ns : t -> Term.t = function
+  | Var x -> Var x
+  | App (t, u) -> App (quote ns t, quote ns u)
   | Abs (env, x, t) ->
     let x' = fresh ns x in
     let t = eval ((x, Var x')::env) t in
-    Term.Abs (x', quote (x'::ns)  t)
+    Abs (x', quote (x'::ns)  t)
 
 (** Compute the normal form of a term. *)
 let normalize env t =
