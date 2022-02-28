@@ -22,7 +22,7 @@ main:
    | def EOF { $1 }
 
 def:
-    | LET IDENT COLON term EQ term IN term { Let ($2,$4,$6,$8) }
+    | LET IDENT COLON term EQ term IN def { Let ($2,$4,$6,$8) }
     | term { $1 }
 
 term:

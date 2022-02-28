@@ -1,40 +1,28 @@
 -- how to elaborate: eval example.txt
 
-let id : (A : _) -> A -> A
-  = \A x. x;
+let id : (A : _) -> A -> A = \A x. x;
 
--- let List : U -> U
-  -- = \A. (L : _) -> (A -> L -> L) -> L -> L;
+let List : U -> U = \A. (L : _) -> (A -> L -> L) -> L -> L;
 
--- let nil : (A : _) -> List A
-  -- = \A L cons nil. nil;
+-- let nil : (A : _) -> List A = \A L cons nil. nil;
 
--- let cons : (A : _) -> A -> List A -> List A
-  -- = \A x xs L cons nil. cons x (xs _ cons nil);
+-- let cons : (A : _) -> A -> List A -> List A = \A x xs L cons nil. cons x (xs _ cons nil);
 
--- let Bool : U
-  -- = (B : _) -> B -> B -> B;
+-- let Bool : U = (B : _) -> B -> B -> B;
 
--- let true : Bool
-  -- = \B t f. t;
+-- let true : Bool = \B t f. t;
 
--- let false : Bool
-  -- = \B t f. f;
+-- let false : Bool = \B t f. f;
 
--- let not : Bool -> Bool
-  -- = \b B t f. b B f t;
+-- let not : Bool -> Bool = \b B t f. b B f t;
 
--- let list1 : List Bool
-  -- = cons _ (id _ true) (nil _);
+-- let list1 : List Bool = cons _ (id _ true) (nil _);
 
--- let Eq : (A : _) -> A -> A -> U
-  -- = \A x y. (P : A -> U) -> P x -> P y;
+-- let Eq : (A : _) -> A -> A -> U = \A x y. (P : A -> U) -> P x -> P y;
 
--- let refl : (A : _)(x : A) -> Eq A x x
-  -- = \A x P px. px;
+-- let refl : (A : _)(x : A) -> Eq A x x = \A x P px. px;
 
--- let list1 : List Bool
-  -- = cons _ true (cons _ false (nil _));
+-- let list1 : List Bool = cons _ true (cons _ false (nil _));
 
 -- let Nat  : U = (N : U) -> (N -> N) -> N -> N;
 -- let five : Nat = \N s z. s (s (s (s (s z))));
