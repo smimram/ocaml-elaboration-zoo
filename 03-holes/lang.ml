@@ -1,0 +1,400 @@
+module RawTerm = struct
+  (** A raw term (this is what we get out of the parser). *)
+  type t =
+    | Var of string
+    | Abs of string * t
+    | App of t * t
+    | U
+    | Pi of string * ty * ty
+    | Hole
+    | Let of string * ty * t * t
+
+  (** A type (only for clarity, it's a term). *)
+  and ty = t
+
+  let rec abs l t =
+    match l with
+    | x::l -> Abs (x, abs l t)
+    | [] -> t
+
+  let rec to_string = function
+    | Var x -> x
+    | App (t, u) -> "(" ^ to_string t ^ " " ^ to_string u ^ ")"
+    | Abs (x, t) -> Printf.sprintf "(λ%s.%s)" x (to_string t)
+    | Let (x, a, t, u) -> Printf.sprintf "let %s : %s = %s;\n%s" x (to_string a) (to_string t) (to_string u)
+    | U -> "U"
+    | Pi (x, a, t) -> Printf.sprintf "(%s : %s) → %s" x (to_string a) (to_string t)
+    | Hole -> "_"
+end
+
+module Term = struct
+  (** A term (a raw term massaged a bit to have de Bruijn indices and metavariables). *)
+  type t =
+    | Var of int
+    | Abs of string * t
+    | App of t * t
+    | U
+    | Pi of string * ty * ty
+    | Let of string * ty * t * t
+    | Meta of int
+
+  (** A type (only for clarity, it's a term). *)
+  and ty = t
+
+  let rec to_string = function
+    | Var i -> Printf.sprintf "x%d" i
+    | Abs (x, t) -> Printf.sprintf "λ%s.%s" x (to_string t)
+    | App (t, u) -> Printf.sprintf "(%s %s)" (to_string t) (to_string u)
+    | U -> "U"
+    | Pi (x, a, b) -> Printf.sprintf "(%s : %s) -> %s" x (to_string a) (to_string b)
+    | Let (x, a, t, u) -> Printf.sprintf "let %s : %s = %s;\n%s" x (to_string a) (to_string t) (to_string u)
+    | Meta i -> Printf.sprintf "?%d" i
+
+  let rec apps t = function
+    | u::l -> apps (App (t, u)) l
+    | [] -> t
+
+  (** Generate a fresh meta-variable. *)
+  let metavariable =
+    (* Note that the integer is not very relevant here, it's only used for
+       printing purposes. *)
+    let n = ref (-1) in
+    fun () ->
+      incr n;
+      Meta !n
+end
+
+(** A value. *)
+type t =
+  | VApp of int * t list (** A neutral value consisting of a variable applied to a list of terms (the first application is the one at the end of the list). *)
+  | MApp of metavariable * t list (** A netural value consisting of a metavariable applied to terms (as above, the top of the list is the outermost application).  *)
+  | Abs of environment * string * Term.t (** A λ-abstraction in a closure. *)
+  | Pi of environment * string * t * Term.t (** A Π-type in a closure. *)
+  | U (** The universe. *)
+
+(** A metavariable consisting of a its name (an integer) and its value when it's
+    known. *)
+and metavariable = int * t option ref
+
+(** An environment: the boolean indicates if the variable was created by a λ
+    abstraction (as opposed to a let), which is useful to know whether we should
+    keep this value for metavariables. *)
+and environment = t list
+
+and closure = environment * t
+
+let rec to_string = function
+  | VApp (i, l) -> List.fold_right (fun t s -> Printf.sprintf "%s %s" s (to_string t)) l (Printf.sprintf "x%d" i)
+  | MApp (m, l) -> List.fold_right (fun t s -> Printf.sprintf "%s %s" s (to_string t)) l (Printf.sprintf "?%d" (fst m))
+  | Abs (_, x, t) -> Printf.sprintf "λ%s.%s" x (Term.to_string t)
+  | Pi (_, x, a, b) -> Printf.sprintf "(%s : %s) -> %s" x (to_string a) (Term.to_string b)
+  | U -> "U"
+
+let var i = VApp (i, [])
+
+(** Get the term corresponding to a metavariable. Those are stored in a global
+    environment since we want to share the same reference for all of them. *)
+let metavariable =
+  let vars = ref [] in
+  fun i : metavariable ->
+    match List.assoc_opt i !vars with
+    | Some v -> v
+    | None ->
+      let v = i, ref None in
+      vars := (i, v) :: !vars;
+      v
+
+(** Compute weak head normal form. *)
+let rec eval (env : environment) : Term.t -> t = function
+  | Var i -> List.nth env i
+  | Abs (x, t) -> Abs (env, x, t)
+  | App (t, u) ->
+    let u = eval env u in
+    (
+      match eval env t with
+      | Abs (env, _, t) -> eval (u::env) t
+      | VApp (x, l) -> VApp (x, u::l)
+      | MApp (x, l) -> MApp (x, u::l)
+      | _ -> assert false
+    )
+  | U -> U
+  | Pi (x, a, b) ->
+    Pi (env, x, eval env a, b)
+  | Let (_, _, t, u) ->
+    let t = eval env t in
+    eval (t::env) u
+  | Meta m -> MApp (metavariable m, [])
+
+(** Create a fresh variable name among ns based on x. *)
+let rec fresh ns x =
+  if x = "_" then "_"
+  else if List.mem x ns then fresh ns (x^"'")
+  else x
+
+(** Reify normal form. *)
+let rec quote l : t -> Term.t = function
+  | VApp (i, uu) ->
+    let rec aux (t : Term.t) = function
+      | u::uu -> aux (App (t, quote l u)) uu
+      | [] -> t
+    in
+    aux (Var (l-1 - i)) uu
+  | MApp ((i,_), tt) ->
+    let tt = List.rev_map (quote l) tt in
+    Term.apps (Meta i) tt
+  | Abs (env, x, t) ->
+    let t = eval ((var l)::env) t in
+    Abs (x, quote (l+1) t)
+  | Pi (env, x, a, b) ->
+    let a = quote l a in
+    let b = eval ((var l)::env) b |> quote (l+1) in
+    Pi (x, a, b)
+  | U -> U
+
+(** Compute the normal form of a term. *)
+let normalize env t =
+  eval env t |> quote (List.length env)
+
+(** Apply a term to another. *)
+let app t u =
+  match t with
+  | VApp (i, l) -> VApp (i, u::l)
+  | MApp (m, l) -> MApp (m, u::l)
+  | Abs (env, _, t) -> eval (u::env) t
+  | _ -> assert false
+
+(** Perform a series of applications. *)
+let rec apps t = function
+  | u::l -> apps (app t u) l
+  | [] -> t
+
+(** Resolve the value of metavariables when it's known. Type should always be
+    forced before matching on them. *)
+let force = function
+  | MApp ((_, m), l) when !m <> None -> apps (Option.get !m) (List.rev l)
+  | t -> t
+
+(** Create a metavariable applied to the variables in the environment. *)
+let fresh_metavariable env l =
+  (* This could be optimized: we could only use λ-abstracted variables
+     (for instannce by adding a boolean in tenv). *)
+  let vars = List.init l (fun i -> var (l-1 - i)) in
+  let a = eval env (Term.metavariable ()) in
+  apps a vars
+
+(*
+module Renaming = struct
+  (** A partial renaming substitution. *)
+  type t =
+    {
+      domain : int; (** The (length of the) domain Γ. *)
+      codomain : int; (** The (length of the) codomain Δ. *)
+      subst : (int * int) list; (** The substitution associating to variables in Δ a variable in Γ. *)
+    }
+
+  (** The empty substituion. *)
+  let empty domain codomain =
+    { domain; codomain; subst = [] }
+
+  (** Whether an element has an image. *)
+  let defined s i =
+    List.assoc_opt i s.subst <> None
+
+  (** Raised when substitution is invalid. *)
+  exception Invalid
+
+  (** Add a new image to the substitution. *)
+  let add s i j =
+    if defined s i then raise Invalid;
+    { s with subst = (i,j) :: s.subst }
+
+  (** Create a substitution. *)
+  let make domain codomain subst =
+    (* We create the substitution from the empty one in order to ensure that it
+       is well-defined. *)
+    List.fold_right (fun (i,j) s -> add s i j) subst (empty domain codomain)
+
+  (** Lift a substitution Γ⊢Δ to Γ,x:A[σ]⊢Δ,x:A. *)
+  let lift s =
+    {
+      domain = s.domain + 1;
+      codomain = s.codomain + 1;
+      subst = (s.codomain, s.domain) :: s.subst
+    }
+
+  (** Raise when trying to take the image of an element on which the
+      substitution is not defined. *)
+  exception Undefined
+
+  (** Apply a renaming to a value. *)
+  let rec app s t : Term.t =
+    match force t with
+    | VApp (i, uu) ->
+      let i =
+        match List.assoc_opt i s.subst with
+        | Some i -> i
+        | None -> raise Undefined
+      in
+      List.fold_right (fun u t -> Term.App (t, app s u)) uu (Term.Var i)
+    | MApp ((m, _), uu) ->
+      List.fold_right (fun u t -> Term.App (t, app s u)) uu (Term.Meta m)
+    | Abs (env, x, t) ->
+      let t = eval ((var s.codomain)::env) t |> app (lift s) in
+      Abs (x, t)
+    | Pi (env, x, a, b) ->
+      let a = app s a in
+      let b = eval ((var s.codomain)::env) b |> app (lift s) in
+      Pi (x, a, b)
+    | U -> U
+end
+*)
+
+exception Unification
+
+(** Unify two terms, i.e. assign values to metavariables so that they become
+    equal. *)
+let rec unify l t u =
+  Printf.printf "unify %s with %s\n%!" (to_string t) (to_string u);
+  match force t, force u with
+  | Abs (env, _, t), Abs (env', _, u) ->
+    let t = eval ((var l)::env) t in
+    let u = eval ((var l)::env') u in
+    unify (l+1) t u
+  | Abs (env, _, t), u ->
+    let t = eval ((var l)::env) t in
+    let u = app u (var l) in
+    unify (l+1) t u
+  | _, Abs _ -> unify l u t
+  | Pi (env, _, a, b), Pi (env', _, a', b') ->
+    unify l a a';
+    let b = eval ((var l)::env) b in
+    let b = app b (var l) in
+    let b' = eval ((var l)::env') b' in
+    let b' = app b' (var l) in
+    unify (l+1) b b'
+  | VApp (i, tt), VApp (i', tt') ->
+    if i <> i' then raise Unification;
+    List.iter2 (unify l) tt tt'
+  | MApp (m, tt), MApp (m', tt') when fst m = fst m' ->
+    List.iter2 (unify l) tt tt'
+  | MApp ((m,r), tt), u ->
+    (* Ensure that we have only variables and that no variable appears twice. *)
+    let rec check = function
+      | (VApp (_, []) as x) :: tt -> if List.mem x tt then raise Unification else check tt
+      | _::_ -> raise Unification
+      | [] -> ()
+    in
+    check tt;
+    let s =
+      List.mapi
+        (fun i t ->
+           match force t with
+           | VApp (j, []) -> j, i
+           | _ -> raise Unification
+        ) tt
+    in
+    let rec subst l s t =
+      match force t with
+      | VApp (i, uu) ->
+        let i =
+          match List.assoc_opt i s with
+          | Some i -> i
+          | None -> raise Unification (* variable escaping scope *)
+        in
+        List.fold_right (fun u t -> Term.App (t, subst l s u)) uu (Term.Var i)
+      | MApp ((m, _), uu) ->
+        List.fold_right (fun u t -> Term.App (t, subst l s u)) uu (Term.Meta m)
+      | Abs (env, x, t) ->
+        let t = eval ((var l)::env) t |> subst (l+1) ((l,List.length s)::s) in
+        Abs (x, t)
+      | Pi (env, x, a, b) ->
+        let a = subst l s a in
+        let b = eval ((var l)::env) b |> subst (l+1) ((l,List.length s)::s) in
+        Pi (x, a, b)
+      | U -> U
+    in
+    let abss n t =
+      let rec aux l =
+        if l = n then t
+        else Term.Abs ("x" ^ string_of_int l, aux (l+1))
+      in
+      aux 0
+    in
+    let solution = abss (List.length tt) (subst l s u) |> eval [] in
+    Printf.printf "solution of %s = %s: %s\n%!" (to_string t) (to_string u) (to_string solution);
+    r := Some solution
+  | _, MApp _ -> unify l u t
+  | U, U -> ()
+  | _ -> raise Unification
+
+(** Check that a raw term has a given type and transform it into a term along
+    the way. *)
+let rec check env tenv l (t : RawTerm.t) a : Term.t =
+  Printf.printf "check %s : %s\n%!" (RawTerm.to_string t) (to_string a);
+  match t, a with
+  | Abs (x, t), Pi (env, _, a, b) ->
+    let b = eval ((var l)::env) b in
+    let t = check ((var l)::env) ((x,a)::tenv) (l+1) t b in
+    Abs (x, t)
+  | Let (x, a, t, u), b ->
+    let a = check env tenv l a U in
+    let va = eval env a in
+    let t = check env tenv l t va in
+    let vt = eval env t in
+    let u = check (vt::env) ((x,va)::tenv) (l+1) u b in
+    Term.Let (x, a, t, u)
+  | Hole, _ ->
+    (* Metavariables are not typed. *)
+    quote l (fresh_metavariable env l)
+  | t, a ->
+    (* The term cannot be checked, try to infer instead. *)
+    let t, b = infer env tenv l t in
+    unify l a b; 
+    t
+
+(** Infer the type of a term and construct the corresponding term along the way. *)
+and infer env tenv l (t : RawTerm.t) : Term.t * t =
+  Printf.printf "infer %s\n%!" (RawTerm.to_string t);
+  match t with
+  | Var x ->
+    let rec aux i = function
+      | (x',a)::l -> if x' = x then Term.Var i, a else aux (i+1) l
+      | [] -> raise Not_found
+    in
+    aux 0 tenv
+  | Abs (x, t) ->
+    let a = eval env (Term.metavariable ()) in
+    let t, b = infer ((var l)::env) ((x,a)::tenv) (l+1) t in
+    let b = quote (l+1) b in
+    Abs (x, t), Pi(env, x, a, b)
+  | App (t, u) ->
+    let t, c = infer env tenv l t in
+    let a, b =
+      match force c with
+      | Pi (env, _, a, b) ->
+        let t = eval env t in
+        let b = eval (t::env) b in
+        a, b
+      | c ->
+        let a = fresh_metavariable env l in
+        let b = fresh_metavariable ((var l)::env) (l+1) in
+        unify l c (Pi (env, "x", a, quote (l+1) b));
+        a, b
+    in
+    let u = check env tenv l u a in
+    App (t, u), b
+  | Pi (x, a, b) ->
+    let a = check env tenv l a U in
+    let va = eval env a in
+    let b = check ((var l)::env) ((x,va)::tenv) (l+1) b U in
+    Pi (x, a, b), U
+  | U -> U, U (* type in type *)
+  | Let (x, a, t, u) ->
+    let a = check env tenv l a U in
+    let va = eval env a in
+    let t = check env tenv l t va in
+    let vt = eval env t in
+    infer (vt::env) ((x,va)::tenv) (l+1) u
+  | Hole ->
+    let a = eval env (Term.metavariable ()) in
+    Term.metavariable (), a
