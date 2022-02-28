@@ -23,7 +23,7 @@ module RawTerm = struct
     | Abs (x, t) -> Printf.sprintf "(λ%s.%s)" x (to_string t)
     | Let (x, a, t, u) -> Printf.sprintf "let %s : %s = %s;\n%s" x (to_string a) (to_string t) (to_string u)
     | U -> "𝕌"
-    | Pi (x, a, t) -> Printf.sprintf "(%s : %s) → %s" x (to_string a) (to_string t)
+    | Pi (x, a, t) -> Printf.sprintf "((%s : %s) → %s)" x (to_string a) (to_string t)
     | Hole -> "_"
 end
 
@@ -105,8 +105,10 @@ let metavariable =
       v
 
 (** Compute weak head normal form. *)
-let rec eval (env : environment) : Term.t -> t = function
-  | Var i -> List.nth env i
+let rec eval (env : environment) (t : Term.t) : t =
+  (* Printf.printf "eval: %s\n%!" (Term.to_string t); *)
+  match t with
+  | Var i -> (try List.nth env i with _ -> failwith ("Evaluation: inexistent variable " ^ string_of_int i))
   | Abs (x, t) -> Abs (env, x, t)
   | App (t, u) ->
     let u = eval env u in
@@ -177,7 +179,7 @@ let force = function
 (** Create a metavariable applied to the λ-abstracted variables in the
     environment. *)
 let fresh_metavariable env tenv menv l =
-  List.iter2 (fun b (x,_) -> print_string ((if b then "+" else "-") ^ x ^ " ")) menv tenv;
+  (* List.iter2 (fun b (x,_) -> print_string ((if b then "+" else "-") ^ x ^ " ")) menv tenv; *)
   print_newline ();
   let vars = List.mapi (fun i b -> if b then Some (var (l-1 - i)) else None) menv in
   let vars = List.filter_map (fun x -> x) vars in
@@ -272,7 +274,8 @@ let string_of_env env tenv menv l =
   assert (List.length env = l);
   assert (List.length tenv = l);
   assert (List.length menv = l);
-  List.map2 (fun (b,t) (x,a) -> Printf.sprintf "%s%s = %s : %s" (if b then "+" else "") x (to_string t) (to_string a)) (List.combine menv env) tenv |> String.concat ", "
+  (* "[" ^ (List.map2 (fun (b,t) (x,a) -> Printf.sprintf "%s%s = %s : %s" (if b then "+" else "") x (to_string t) (to_string a)) (List.combine menv env) tenv |> String.concat ", ") ^ "]" *)
+  ""
 
 (** Check that a raw term has a given type and transform it into a term along
     the way. The environment binds variables to values, the typing environments
@@ -280,10 +283,10 @@ let string_of_env env tenv menv l =
     variable as argument for metavariables (currently we only keep λ-abstractions
     but not variables declared with let). *)
 let rec check env tenv menv l (t : RawTerm.t) a : Term.t =
-  Printf.printf "check %s : %s [%s]\n%!" (RawTerm.to_string t) (to_string a) (string_of_env env tenv menv l);
+  Printf.printf "check %s : %s %s\n%!" (RawTerm.to_string t) (to_string a) (string_of_env env tenv menv l);
   match t, a with
-  | Abs (x, t), Pi (env, _, a, b) ->
-    let b = eval ((var l)::env) b in
+  | Abs (x, t), Pi (env', _, a, b) ->
+    let b = eval ((var l)::env') b in
     let t = check ((var l)::env) ((x,a)::tenv) (true::menv) (l+1) t b in
     Abs (x, t)
   | Let (x, a, t, u), b ->
@@ -305,7 +308,7 @@ let rec check env tenv menv l (t : RawTerm.t) a : Term.t =
 (** Infer the type of a term and construct the corresponding term along the
     way. *)
 and infer env tenv menv l (t : RawTerm.t) : Term.t * t =
-  Printf.printf "infer %s [%s]\n%!" (RawTerm.to_string t) (string_of_env env tenv menv l);
+  Printf.printf "infer %s %s\n%!" (RawTerm.to_string t) (string_of_env env tenv menv l);
   match t with
   | Var x ->
     let rec aux i = function
@@ -320,11 +323,14 @@ and infer env tenv menv l (t : RawTerm.t) : Term.t * t =
     Abs (x, t), Pi(env, x, a, b)
   | App (t, u) ->
     let t, c = infer env tenv menv l t in
+    (* Printf.printf "t is %s : %s\n%!" (Term.to_string t) (to_string c); *)
     let a, b =
       match force c with
-      | Pi (env, _, a, b) ->
-        let t = eval env t in
-        let b = eval (t::env) b in
+      | Pi (env', _, a, b) ->
+        let b =
+          let t = eval env t in
+          eval (t::env') b
+        in
         a, b
       | c ->
         let a = fresh_metavariable env tenv menv l in

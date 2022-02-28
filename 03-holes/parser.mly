@@ -10,8 +10,8 @@
 %token EOF
 
 %nonassoc LAMBDA DOT
-%nonassoc IDENT LPAR U HOLE
 %right TO
+%nonassoc IDENT LPAR U HOLE
 %nonassoc APP
 
 %start main
