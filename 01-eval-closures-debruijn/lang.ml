@@ -45,12 +45,6 @@ let rec eval (env : environment) : Term.t -> t = function
     let t = eval env t in
     eval (t::env) u
 
-(** Create a fresh variable name among ns based on x. *)
-let rec fresh ns x =
-  if x = "_" then "_"
-  else if List.mem x ns then fresh ns (x^"'")
-  else x
-
 (** Reify normal form. *)
 let rec quote l : t -> Term.t = function
   | Var i -> Var (l-1 - i)
