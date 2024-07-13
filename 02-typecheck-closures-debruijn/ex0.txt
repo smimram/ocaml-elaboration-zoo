@@ -1,4 +1,9 @@
+-- the identity function
 let id : (A : U) -> A -> A = \A x. x in
+
+-- a constant function
 let foo : U = U in
+
 let bar : (A : U) -> A -> A = id ((A : U) -> A -> A) id in     -- we cannot apply any function to itself (already true in simple TT)
+
 id

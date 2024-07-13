@@ -6,12 +6,14 @@ module Term = struct
     | App of t * t
     | Let of string * t * t
 
+  (** Abstract over multiple variables. *)
   let rec abs xx t =
     match xx with
     | [x] -> Abs (x, t)
     | x::xx -> Abs(x, abs xx t)
     | [] -> assert false
 
+  (** String representation. *)
   let rec to_string = function
     | Var x -> x
     | App (t, u) -> "(" ^ to_string t ^ " " ^ to_string u ^ ")"
@@ -57,7 +59,7 @@ let rec quote ns : t -> Term.t = function
   | Abs (env, x, t) ->
     let x' = fresh ns x in
     let t = eval ((x, Var x')::env) t in
-    Abs (x', quote (x'::ns)  t)
+    Abs (x', quote (x'::ns) t)
 
 (** Compute the normal form of a term. *)
 let normalize env t =

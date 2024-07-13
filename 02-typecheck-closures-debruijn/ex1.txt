@@ -1,3 +1,8 @@
+-- identity
 let id : (A : U) -> A -> A = \A x. x in
+
+-- first projection
 let const : (A : U) -> (B : U) -> A -> B -> A = \A B x y. x in
+
+-- apply id to const
 id ((A : U) -> (B : U) -> A -> B -> A) const

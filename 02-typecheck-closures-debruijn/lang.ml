@@ -11,6 +11,7 @@ module RawTerm = struct
   (** A type (only for clarity, it's a term). *)
   and ty = t
 
+  (** String representation. *)
   let rec to_string = function
     | Var x -> x
     | App (t, u) -> "(" ^ to_string t ^ " " ^ to_string u ^ ")"
@@ -19,12 +20,14 @@ module RawTerm = struct
     | U -> "𝒰"
     | Pi (x, a, t) -> Printf.sprintf "((%s : %s) → %s)" x (to_string a) (to_string t)
 
+  (** Abstract over multiple variables. *)
   let rec abs xx t =
     match xx with
     | [x] -> Abs (x, t)
     | x::xx -> Abs(x, abs xx t)
     | [] -> assert false
 
+  (** Pi-abstract over multiple variables. *)
   let rec pi xx a b =
     match xx with
     | [x] -> Pi(x, a, b)
@@ -35,11 +38,11 @@ end
 module Term = struct
   (** A term (a raw term massaged a bit to have de Bruijn indices and metavariables). *)
   type t =
-    | Var of int
-    | Abs of string * t
+    | Var of int (** a variable with givne de Bruijn index *)
+    | Abs of string * t (** abstraction (the variable name is only used for printing) *)
     | App of t * t
     | U
-    | Pi of string * ty * ty
+    | Pi of string * ty * ty (** Π-type (the variable name is only used for printing) *)
     | Let of string * ty * t * t
 
   (** A type (only for clarity, it's a term). *)
@@ -62,12 +65,15 @@ type t =
   | Pi of environment * string * ty * Term.t
   | U
 
+(** A type. *)
 and ty = t
 
+(** An environment. *)
 and environment = t list
 
 and closure = environment * t
 
+(** String representation of a value. *)
 let rec to_string = function
   | Var i -> string_of_int i
   | App (t, u) -> Printf.sprintf "(%s %s)" (to_string t) (to_string u)
@@ -75,7 +81,7 @@ let rec to_string = function
   | Pi (_, x, a, t) -> Printf.sprintf "(%s : %s) → %s" x (to_string a) (Term.to_string t)
   | U -> "𝒰"
 
-(** Compute weak head normal form. *)
+(** Compute the weak head normal form of a term (which is a value). *)
 let rec eval (env : environment) : Term.t -> t = function
   | Var i -> List.nth env i
   | Abs (x, t) -> Abs (env, x, t)
@@ -92,7 +98,7 @@ let rec eval (env : environment) : Term.t -> t = function
     let t = eval env t in
     eval (t::env) u
 
-(** Reify normal form. *)
+(** Reify a normal form. *)
 let rec quote l : t -> Term.t = function
   | Var i -> Var (l-1 - i)
   | App (t, u) -> App (quote l t, quote l u)
