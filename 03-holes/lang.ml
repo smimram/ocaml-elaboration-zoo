@@ -56,8 +56,7 @@ module Term = struct
 
   (** Generate a fresh meta-variable. *)
   let metavariable =
-    (* Note that the integer is not very relevant here, it's only used for
-       printing purposes. *)
+    (* Note that the integer is not very relevant here, it's only used for printing purposes. *)
     let n = ref (-1) in
     fun () ->
       incr n;
@@ -72,8 +71,7 @@ type t =
   | Pi of environment * string * t * Term.t (** A Π-type in a closure. *)
   | U (** The universe. *)
 
-(** A metavariable consisting of a its name (an integer) and its value when it's
-    known. *)
+(** A metavariable consisting of a its name (an integer) and its value when it is known. *)
 and metavariable = int * t option ref
 
 (** An environment: the boolean indicates if the variable was created by a λ
@@ -159,6 +157,7 @@ let normalize env t =
 
 (** Apply a term to another. *)
 let app t u =
+  (* Printf.printf "app %s to %s\n%!" (to_string t) (to_string u); *)
   match t with
   | VApp (i, l) -> VApp (i, u::l)
   | MApp (m, l) -> MApp (m, u::l)
@@ -197,7 +196,7 @@ exception Unification
 (** Unify two terms, i.e. assign values to metavariables so that they become
     equal. *)
 let rec unify l t u =
-  Printf.printf "unify %s with %s\n%!" (to_string t) (to_string u);
+  (* Printf.printf "unify %s with %s\n%!" (to_string t) (to_string u); *)
   match force t, force u with
   | Abs (env, _, t), Abs (env', _, u) ->
     let t = eval ((var l)::env) t in
@@ -210,10 +209,10 @@ let rec unify l t u =
   | _, Abs _ -> unify l u t
   | Pi (env, _, a, b), Pi (env', _, a', b') ->
     unify l a a';
+    (* Printf.printf "b: %s vs %s\n%!" (Term.to_string b) (Term.to_string b'); *)
+    (* Printf.printf "env: [%s] vs [%s]\n%!" (List.map to_string env |> String.concat ", ") (List.map to_string env' |> String.concat ", "); *)
     let b = eval ((var l)::env) b in
-    let b = app b (var l) in
     let b' = eval ((var l)::env') b' in
-    let b' = app b' (var l) in
     unify (l+1) b b'
   | VApp (i, tt), VApp (i', tt') ->
     if i <> i' then raise Unification;
@@ -283,7 +282,7 @@ let string_of_env env tenv menv l =
     variable as argument for metavariables (currently we only keep λ-abstractions
     but not variables declared with let). *)
 let rec check env tenv menv l (t : RawTerm.t) a : Term.t =
-  Printf.printf "check %s : %s %s\n%!" (RawTerm.to_string t) (to_string a) (string_of_env env tenv menv l);
+  (* Printf.printf "check %s : %s %s\n%!" (RawTerm.to_string t) (to_string a) (string_of_env env tenv menv l); *)
   match t, a with
   | Abs (x, t), Pi (env', _, a, b) ->
     let b = eval ((var l)::env') b in
@@ -305,10 +304,9 @@ let rec check env tenv menv l (t : RawTerm.t) a : Term.t =
     unify l a b; 
     t
 
-(** Infer the type of a term and construct the corresponding term along the
-    way. *)
+(** Infer the type of a term and construct the corresponding term along the way. *)
 and infer env tenv menv l (t : RawTerm.t) : Term.t * t =
-  Printf.printf "infer %s %s\n%!" (RawTerm.to_string t) (string_of_env env tenv menv l);
+  (* Printf.printf "infer %s %s\n%!" (RawTerm.to_string t) (string_of_env env tenv menv l); *)
   match t with
   | Var x ->
     let rec aux i = function

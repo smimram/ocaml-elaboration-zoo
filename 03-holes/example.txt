@@ -1,10 +1,8 @@
--- how to elaborate: eval example.txt
-
 let id : (A : _) -> A -> A = \A x. x;
 
 let List : U -> U = \A. (L : _) -> (A -> L -> L) -> L -> L;
 
-let nil : (A : _) -> List A = \A L cons nil. nil;
+-- let nil : (A : _) -> List A = \A L cons nil. nil;
 
 -- let cons : (A : _) -> A -> List A -> List A = \A x xs L cons nil. cons x (xs _ cons nil);
 
