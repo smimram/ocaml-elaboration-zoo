@@ -1,8 +1,6 @@
-let id : (A : U) -> A -> A = \A x. x;
+-- let id : (A : U) -> A -> A = \A x. x;
 
-let id : (A : _) -> A -> A = \A x. x;
-
-id
+-- let id : (A : _) -> A -> A = \A x. x;
 
 -- let List : U -> U = \A. (L : _) -> (A -> L -> L) -> L -> L;
 
@@ -10,13 +8,13 @@ id
 
 -- let cons : (A : _) -> A -> List A -> List A = \A x xs L cons nil. cons x (xs _ cons nil);
 
--- let Bool : U = (B : _) -> B -> B -> B;
+let Bool : U = (B : _) -> B -> B -> B;
 
 -- let true : Bool = \B t f. t;
 
 -- let false : Bool = \B t f. f;
 
--- let not : Bool -> Bool = \b B t f. b B f t;
+let not : Bool -> Bool = \b B t f. b B f t;
 
 -- let list1 : List Bool = cons _ (id _ true) (nil _);
 
@@ -37,4 +35,4 @@ id
 
 -- let eqTest : Eq _ hundred hundred = refl _ _;
 
--- U
+U

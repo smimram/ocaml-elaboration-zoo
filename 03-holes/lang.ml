@@ -199,7 +199,7 @@ exception Unification
 
 (** Unify two terms, i.e. assign values to metavariables so that they become equal. *)
 let rec unify l t u =
-  (* Printf.printf "unify %s with %s\n%!" (to_string t) (to_string u); *)
+  Printf.printf "unify %s with %s\n%!" (to_string t) (to_string u);
   match force t, force u with
   | Abs (env, _, t), Abs (env', _, u) ->
     let t = eval ((var l)::env) t in
@@ -285,7 +285,7 @@ let string_of_env env tenv menv l =
     variable as argument for metavariables (currently we only keep λ-abstractions
     but not variables declared with let). *)
 let rec check env tenv menv l (t : RawTerm.t) a : Term.t =
-  (* Printf.printf "check %s : %s %s\n%!" (RawTerm.to_string t) (to_string a) (string_of_env env tenv menv l); *)
+  Printf.printf "check %s : %s %s\n%!" (RawTerm.to_string t) (to_string a) (string_of_env env tenv menv l);
   match t, a with
   | Abs (x, t), Pi (env', _, a, b) ->
     let b = eval ((var l)::env') b in
