@@ -65,7 +65,7 @@ end
 
 (** A value. *)
 type t =
-  | VApp of int * t list (** A neutral value consisting of a variable applied to a list of terms (the first application is the one at the end of the list). *)
+  | VApp of int * t list (** A neutral value consisting of a variable applied to a list of terms (the first application is the one at the end of the list, ie xᵢt₁…tₙ is represented by (i,[tₙ;…;t₁])). *)
   | MApp of metavariable * t list (** A netural value consisting of a metavariable applied to terms (as above, the top of the list is the outermost application).  *)
   | Abs of environment * string * Term.t (** A λ-abstraction in a closure. *)
   | Pi of environment * string * t * Term.t (** A Π-type in a closure. *)
@@ -88,6 +88,7 @@ let rec to_string = function
   | Pi (_, x, a, b) -> Printf.sprintf "(%s : %s) -> %s" x (to_string a) (Term.to_string b)
   | U -> "𝕌"
 
+(** A variable term. *)
 let var i = VApp (i, [])
 
 (** Get the term corresponding to a metavariable. Those are stored in a global
@@ -169,17 +170,15 @@ let rec apps t = function
   | u::l -> apps (app t u) l
   | [] -> t
 
-(** Resolve the value of metavariables when it's known. Type should always be
-    forced before matching on them. *)
+(** Resolve the value of metavariables when it's known. Types should always be forced before matching on them. *)
 let force = function
   | MApp ((_, m), l) when !m <> None -> apps (Option.get !m) (List.rev l)
   | t -> t
 
-(** Create a metavariable applied to the λ-abstracted variables in the
-    environment. *)
+(** Create a metavariable applied to the λ-abstracted variables in the environment. *)
 let fresh_metavariable env tenv menv l =
   (* List.iter2 (fun b (x,_) -> print_string ((if b then "+" else "-") ^ x ^ " ")) menv tenv; *)
-  print_newline ();
+  (* print_newline (); *)
   let vars = List.mapi (fun i b -> if b then Some (var (l-1 - i)) else None) menv in
   let vars = List.filter_map (fun x -> x) vars in
   (* This could be optimized: we could only use λ-abstracted variables
@@ -193,8 +192,7 @@ let fresh_metavariable env tenv menv l =
 
 exception Unification
 
-(** Unify two terms, i.e. assign values to metavariables so that they become
-    equal. *)
+(** Unify two terms, i.e. assign values to metavariables so that they become equal. *)
 let rec unify l t u =
   (* Printf.printf "unify %s with %s\n%!" (to_string t) (to_string u); *)
   match force t, force u with
@@ -263,7 +261,7 @@ let rec unify l t u =
       aux 0
     in
     let solution = abss (List.length tt) (subst l s u) |> eval [] in
-    Printf.printf "solution of %s = %s: %s\n%!" (to_string t) (to_string u) (to_string solution);
+    Printf.printf "solution of %s = %s is %s\n%!" (to_string t) (to_string u) (to_string solution);
     r := Some solution
   | _, MApp _ -> unify l u t
   | U, U -> ()
@@ -277,7 +275,7 @@ let string_of_env env tenv menv l =
   ""
 
 (** Check that a raw term has a given type and transform it into a term along
-    the way. The environment binds variables to values, the typing environments
+    the way. The environment env binds variables to values, the typing environment tenv
     provides the type of variables and menv indicates whether we should keep a
     variable as argument for metavariables (currently we only keep λ-abstractions
     but not variables declared with let). *)

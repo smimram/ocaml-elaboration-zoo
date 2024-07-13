@@ -1,6 +1,10 @@
-let id : (A : _) -> A -> A = \A x. x;
+let id : (A : U) -> A -> A = \A x. x;
 
-let List : U -> U = \A. (L : _) -> (A -> L -> L) -> L -> L;
+-- let id : (A : _) -> A -> A = \A x. x;
+
+id
+
+-- let List : U -> U = \A. (L : _) -> (A -> L -> L) -> L -> L;
 
 -- let nil : (A : _) -> List A = \A L cons nil. nil;
 
@@ -33,4 +37,4 @@ let List : U -> U = \A. (L : _) -> (A -> L -> L) -> L -> L;
 
 -- let eqTest : Eq _ hundred hundred = refl _ _;
 
-U
+-- U
