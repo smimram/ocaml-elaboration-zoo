@@ -83,7 +83,10 @@ and closure = environment * t
 
 let rec to_string = function
   | VApp (i, l) -> List.fold_right (fun t s -> Printf.sprintf "%s %s" s (to_string t)) l (Printf.sprintf "x%d" i)
-  | MApp (m, l) -> List.fold_right (fun t s -> Printf.sprintf "%s %s" s (to_string t)) l (Printf.sprintf "?%d" (fst m))
+  | MApp (m, l) ->
+    (* Print the value of the metavariable when it is known *)
+    let tm = match !(snd m) with None -> "" | Some t -> "=" ^ to_string t in
+    List.fold_right (fun t s -> Printf.sprintf "%s %s" s (to_string t)) l (Printf.sprintf "?%d%s" (fst m) tm)
   | Abs (_, x, t) -> Printf.sprintf "λ%s.%s" x (Term.to_string t)
   | Pi (_, x, a, b) -> Printf.sprintf "(%s : %s) -> %s" x (to_string a) (Term.to_string b)
   | U -> "𝕌"
@@ -91,16 +94,18 @@ let rec to_string = function
 (** A variable term. *)
 let var i = VApp (i, [])
 
+(** All the metavariables. It should only be accessed with the functions below (excepting for debugging purposes). *)
+let metavariables = ref []
+
 (** Get the term corresponding to a metavariable. Those are stored in a global
     environment since we want to share the same reference for all of them. *)
 let metavariable =
-  let vars = ref [] in
   fun i : metavariable ->
-    match List.assoc_opt i !vars with
+    match List.assoc_opt i !metavariables with
     | Some v -> v
     | None ->
       let v = i, ref None in
-      vars := (i, v) :: !vars;
+      metavariables := (i, v) :: !metavariables;
       v
 
 (** Compute weak head normal form. *)
