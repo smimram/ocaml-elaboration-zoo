@@ -302,7 +302,7 @@ let rec check env tenv menv l (t : RawTerm.t) a : Term.t =
     unify l a b; 
     t
 
-(** Infer the type of a term and construct the corresponding term along the way. *)
+(** Infer the type of a term and convert the raw term to a term along the way. *)
 and infer env tenv menv l (t : RawTerm.t) : Term.t * t =
   (* Printf.printf "infer %s %s\n%!" (RawTerm.to_string t) (string_of_env env tenv menv l); *)
   match t with
@@ -347,7 +347,8 @@ and infer env tenv menv l (t : RawTerm.t) : Term.t * t =
     let va = eval env a in
     let t = check env tenv menv l t va in
     let vt = eval env t in
-    infer (vt::env) ((x,va)::tenv) (false::menv) (l+1) u
+    let u, b = infer (vt::env) ((x,va)::tenv) (false::menv) (l+1) u in
+    Let (x, a, t, u), b
   | Hole ->
     let a = eval env (Term.metavariable ()) in
     Term.metavariable (), a
