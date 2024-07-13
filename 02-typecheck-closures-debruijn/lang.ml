@@ -169,7 +169,7 @@ let rec check env tenv l (t : RawTerm.t) (a : ty) : Term.t =
     if not (conv l b a) then raise Typing;
     t
 
-(** Infer the type for a term. *)
+(** Infer the type for a term and generate the term associated to the raw term along the way. *)
 and infer env tenv l (t : RawTerm.t) : Term.t * ty =
   (* Printf.printf "infer: %s\n%!" (RawTerm.to_string t); *)
   match t with
