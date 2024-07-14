@@ -23,7 +23,7 @@ rule token = parse
   | ")" { RPAR }
   | "_" { HOLE }
   | "U" { U }
-  | (['A'-'Z''a'-'z']+ as s) { IDENT s }
+  | (['A'-'Z''a'-'z']['A'-'Z''a'-'z''0'-'9']* as s) { IDENT s }
   | "--"[^'\n']* { token lexbuf }
   | space+ { token lexbuf }
   | "\n" { new_line lexbuf; token lexbuf }

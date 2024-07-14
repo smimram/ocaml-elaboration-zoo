@@ -12,11 +12,13 @@ module RawTerm = struct
   (** A type (only for clarity, it's a term). *)
   and ty = t
 
+  (** Abstract over multiple variables. *)
   let rec abs l t =
     match l with
     | x::l -> Abs (x, abs l t)
     | [] -> t
 
+  (** String representation. *)
   let rec to_string = function
     | Var x -> x
     | App (t, u) -> "(" ^ to_string t ^ " " ^ to_string u ^ ")"
@@ -81,15 +83,20 @@ and environment = t list
 
 and closure = environment * t
 
-let rec to_string = function
+let rec to_string ?(environment=false) = function
   | VApp (i, l) -> List.fold_right (fun t s -> Printf.sprintf "%s %s" s (to_string t)) l (Printf.sprintf "x%d" i)
   | MApp (m, l) ->
     (* Print the value of the metavariable when it is known *)
     let tm = match !(snd m) with None -> "" | Some t -> "=" ^ to_string t in
     List.fold_right (fun t s -> Printf.sprintf "%s %s" s (to_string t)) l (Printf.sprintf "?%d%s" (fst m) tm)
   | Abs (_, x, t) -> Printf.sprintf "λ%s.%s" x (Term.to_string t)
-  | Pi (_, x, a, b) -> Printf.sprintf "(%s : %s) -> %s" x (to_string a) (Term.to_string b)
+  | Pi (env, x, a, b) ->
+    let env = if environment then string_of_environment env else "" in
+    Printf.sprintf "(%s : %s) -> %s%s" x (to_string a) (Term.to_string b) env
   | U -> "𝕌"
+
+and string_of_environment env =
+  List.map to_string env |> String.concat ", " |> fun s -> "["^s^"]"
 
 (** A variable term. *)
 let var i = VApp (i, [])
@@ -110,7 +117,7 @@ let metavariable =
 
 (** Compute weak head normal form. *)
 let rec eval (env : environment) (t : Term.t) : t =
-  (* Printf.printf "eval: %s\n%!" (Term.to_string t); *)
+  (* Printf.printf "eval: %s in [%s]\n%!" (Term.to_string t) (List.map to_string env |> String.concat ", "); *)
   match t with
   | Var i -> (try List.nth env i with _ -> failwith ("Evaluation: inexistent variable " ^ string_of_int i))
   | Abs (x, t) -> Abs (env, x, t)
@@ -130,7 +137,7 @@ let rec eval (env : environment) (t : Term.t) : t =
     let t = eval env t in
     eval (t::env) u
   | Meta m -> MApp (metavariable m, [])
-
+  
 (** Create a fresh variable name among ns based on x. *)
 let rec fresh ns x =
   if x = "_" then "_"
@@ -199,7 +206,7 @@ exception Unification
 
 (** Unify two terms, i.e. assign values to metavariables so that they become equal. *)
 let rec unify l t u =
-  Printf.printf "unify %s with %s\n%!" (to_string t) (to_string u);
+  (* Printf.printf "unify %s with %s\n%!" (to_string ~environment:true t) (to_string ~environment:true u); *)
   match force t, force u with
   | Abs (env, _, t), Abs (env', _, u) ->
     let t = eval ((var l)::env) t in
@@ -266,7 +273,7 @@ let rec unify l t u =
       aux 0
     in
     let solution = abss (List.length tt) (subst l s u) |> eval [] in
-    Printf.printf "solution of %s = %s is %s\n%!" (to_string t) (to_string u) (to_string solution);
+    (* Printf.printf "solution of %s = %s is %s\n%!" (to_string t) (to_string u) (to_string solution); *)
     r := Some solution
   | _, MApp _ -> unify l u t
   | U, U -> ()
@@ -285,7 +292,7 @@ let string_of_env env tenv menv l =
     variable as argument for metavariables (currently we only keep λ-abstractions
     but not variables declared with let). *)
 let rec check env tenv menv l (t : RawTerm.t) a : Term.t =
-  Printf.printf "check %s : %s %s\n%!" (RawTerm.to_string t) (to_string a) (string_of_env env tenv menv l);
+  (* Printf.printf "check %s : %s %s\n%!" (RawTerm.to_string t) (to_string ~environment:true a) (string_of_env env tenv menv l); *)
   match t, a with
   | Abs (x, t), Pi (env', _, a, b) ->
     let b = eval ((var l)::env') b in
@@ -325,22 +332,22 @@ and infer env tenv menv l (t : RawTerm.t) : Term.t * t =
   | App (t, u) ->
     let t, c = infer env tenv menv l t in
     (* Printf.printf "t is %s : %s\n%!" (Term.to_string t) (to_string c); *)
-    let a, b =
+    (
       match force c with
       | Pi (env', _, a, b) ->
+        let u = check env tenv menv l u a in
         let b =
-          let t = eval env t in
-          eval (t::env') b
+          let u = eval env u in
+          eval (u::env') b
         in
-        a, b
+        App(t, u), b
       | c ->
         let a = fresh_metavariable env tenv menv l in
         let b = fresh_metavariable ((var l)::env) (("x",a)::tenv) (true::menv) (l+1) in
         unify l c (Pi (env, "x", a, quote (l+1) b));
-        a, b
-    in
-    let u = check env tenv menv l u a in
-    App (t, u), b
+        let u = check env tenv menv l u a in
+        App(t, u), b
+    )
   | Pi (x, a, b) ->
     let a = check env tenv menv l a U in
     let va = eval env a in
@@ -350,6 +357,7 @@ and infer env tenv menv l (t : RawTerm.t) : Term.t * t =
   | Let (x, a, t, u) ->
     let a = check env tenv menv l a U in
     let va = eval env a in
+    (* Printf.printf "let type %s => %s\n%!" (Term.to_string a) (to_string va); *)
     let t = check env tenv menv l t va in
     let vt = eval env t in
     let u, b = infer (vt::env) ((x,va)::tenv) (false::menv) (l+1) u in
