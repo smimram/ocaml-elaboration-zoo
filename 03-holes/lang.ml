@@ -311,6 +311,7 @@ let rec check env tenv menv l (t : RawTerm.t) a : Term.t =
   | t, a ->
     (* The term cannot be checked, try to infer instead. *)
     let t, b = infer env tenv menv l t in
+    (* Printf.printf "could not check %s : %s, unify with %s instead\n%!" (Term.to_string t) (to_string a) (to_string b); *)
     unify l a b; 
     t
 
