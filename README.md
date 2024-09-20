@@ -16,11 +16,11 @@ Following Kovács, we provide various implementations, which are more and more e
    - [01-eval-HOAS-names](01-eval-HOAS-names). We keep variable names and abstractions are evaluated to OCaml abstractions, i.e. values are
    
      ```ocaml
-type t =
-  | Var of string
-  | App of t * t
-  | Abs of string * (t -> t)
-      ```
+     type t =
+       | Var of string
+       | App of t * t
+       | Abs of string * (t -> t)
+     ```
       
      If evaluating λ-terms is all you wanted, and you wanted to do it quickly, this is the way to proceed. There are two limitations of this implementation however.
      
@@ -30,12 +30,12 @@ type t =
    - [01-eval-closures-names](01-eval-closures-names). Abstractions are evaluated to formal abstractions with closures where variables are named with strings, i.e. values are
    
      ```ocaml
-type t =
-  | Var of string
-  | App of t * t
-  | Abs of environment * string * Term.t  (** A λ-abstraction in an environment. *)
+     type t =
+       | Var of string
+       | App of t * t
+       | Abs of environment * string * Term.t  (** A λ-abstraction in an environment. *)
 
-and environment = (string * t) list
+     and environment = (string * t) list
      ```
    
      This is the most direct way to proceed (we use NBE so that α-conversion is handled by OCaml and we keep variable names so that we can easily debug our implementation), but it is inefficient because we have to compare strings in order to look for the value of a variable in an environment.
