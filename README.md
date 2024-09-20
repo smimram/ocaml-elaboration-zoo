@@ -39,7 +39,7 @@ Following Kovács, we provide various implementations, which are more and more e
      ```
    
      This is the most direct way to proceed (we use NBE so that α-conversion is handled by OCaml and we keep variable names so that we can easily debug our implementation), but it is inefficient because we have to compare strings in order to look for the value of a variable in an environment.
-    - [01-eval-closures-debruijn](01-eval-closures-debruijn). Same as above, but before evaluating λ-terms, we convert all variables to de Bruijn indices which makes evaluation much more efficient.
+    - [01-eval-closures-debruijn](01-eval-closures-debruijn). Same as above, but before evaluating λ-terms, we convert all variables to [de Bruijn indices](https://en.wikipedia.org/wiki/De_Bruijn_index) which makes evaluation much more efficient.
 
 2. _Typechecking of a dependently-typed λ-calculus_. We add types to our language. In particular, functions are typed with Π-types.
 
