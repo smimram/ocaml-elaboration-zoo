@@ -33,7 +33,7 @@ Following Kovács, we provide various implementations, which are more and more e
      type t =
        | Var of string
        | App of t * t
-       | Abs of environment * string * Term.t  (** A λ-abstraction in an environment. *)
+       | Abs of environment * string * Term.t
 
      and environment = (string * t) list
      ```
@@ -43,7 +43,7 @@ Following Kovács, we provide various implementations, which are more and more e
 
 2. _Typechecking of a dependently-typed λ-calculus_. We add types to our language. In particular, functions are typed with Π-types.
 
-  - [02-typecheck-closures-debruijn](02-typecheck-closures-debruijn)
+   - [02-typecheck-closures-debruijn](02-typecheck-closures-debruijn)
 
 3. _Metavariables_. Often, we would like to have the typechecker come up with some values automatically for us. In this case, we put a metavariable and hope that it will be filled later on. For instance, given the identity
 
@@ -59,4 +59,4 @@ Following Kovács, we provide various implementations, which are more and more e
     
     and have the typechecker guess that `_` (the metavariable) has to be `ℕ`.
 
-  - [03-holes](03-holes)
+    - [03-holes](03-holes)
