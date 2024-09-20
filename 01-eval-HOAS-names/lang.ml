@@ -19,15 +19,13 @@ module Term = struct
     | Let (x, t, u) -> Printf.sprintf "let %s = %s in\n%s" x (to_string t) (to_string u)
 end
 
-type environment = (string * t) list
-
 (** A value. *)
-and t =
+type t =
   | Var of string
   | App of t * t
   | Abs of string * (t -> t)
 
-and closure = environment * string * Term.t
+type environment = (string * t) list
 
 (** Compute weak head normal form. *)
 let rec eval (env : environment) : Term.t -> t = function

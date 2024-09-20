@@ -76,9 +76,7 @@ type t =
 (** A metavariable consisting of a its name (an integer) and its value when it is known. *)
 and metavariable = int * t option ref
 
-(** An environment: the boolean indicates if the variable was created by a λ
-    abstraction (as opposed to a let), which is useful to know whether we should
-    keep this value for metavariables. *)
+(** An environment: the boolean indicates if the variable was created by a λ-abstraction (as opposed to a let), which is useful to know whether we should keep this value for metavariables. *)
 and environment = t list
 
 and closure = environment * t
@@ -104,8 +102,7 @@ let var i = VApp (i, [])
 (** All the metavariables. It should only be accessed with the functions below (excepting for debugging purposes). *)
 let metavariables = ref []
 
-(** Get the term corresponding to a metavariable. Those are stored in a global
-    environment since we want to share the same reference for all of them. *)
+(** Get the term corresponding to a metavariable. Those are stored in a global environment since we want to share the same reference for all of them. *)
 let metavariable =
   fun i : metavariable ->
     match List.assoc_opt i !metavariables with
