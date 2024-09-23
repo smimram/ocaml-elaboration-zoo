@@ -38,7 +38,7 @@ end
 module Term = struct
   (** A term (a raw term massaged a bit to have de Bruijn indices and metavariables). *)
   type t =
-    | Var of int (** a variable with givne de Bruijn index *)
+    | Var of int (** a variable with given de Bruijn index *)
     | Abs of string * t (** abstraction (the variable name is only used for printing) *)
     | App of t * t
     | U
