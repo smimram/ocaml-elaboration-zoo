@@ -13,7 +13,7 @@ Following Kovács, we provide various implementations, which are more and more e
 
 1. _Evaluation of λ-calculus_ using [normalization by evaluation](https://en.wikipedia.org/wiki/Normalisation_by_evaluation) (NBE).
 
-   - [01-eval-HOAS-names](01-eval-HOAS-names). We keep variable names and abstractions are evaluated to OCaml abstractions, i.e. values are
+   - [01-eval-HOAS-names](01-eval-HOAS-names). We keep variable names and abstractions are evaluated to OCaml abstractions (this is called HOAS for [Higher-Order Abstract Syntax](https://en.wikipedia.org/wiki/Higher-order_abstract_syntax)), i.e. values are
    
      ```ocaml
      type t =
@@ -43,7 +43,8 @@ Following Kovács, we provide various implementations, which are more and more e
 
 2. _Typechecking of a dependently-typed λ-calculus_. We add types to our language. In particular, functions are typed with Π-types.
 
-   - [02-typecheck-closures-debruijn](02-typecheck-closures-debruijn)
+   - [02-typecheck-HOAS-names](02-typecheck-HOAS-names). Typechecking with OCaml closures.
+   - [02-typecheck-closures-debruijn](02-typecheck-closures-debruijn). Type checking with de Bruijn indices.
 
 3. _Metavariables_. Often, we would like to have the typechecker come up with some values automatically for us. In this case, we put a metavariable and hope that it will be filled later on. For instance, given the identity
 
