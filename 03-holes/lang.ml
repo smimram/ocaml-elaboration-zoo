@@ -283,11 +283,7 @@ let string_of_env env tenv menv l =
   (* "[" ^ (List.map2 (fun (b,t) (x,a) -> Printf.sprintf "%s%s = %s : %s" (if b then "+" else "") x (to_string t) (to_string a)) (List.combine menv env) tenv |> String.concat ", ") ^ "]" *)
   ""
 
-(** Check that a raw term has a given type and transform it into a term along
-    the way. The environment env binds variables to values, the typing environment tenv
-    provides the type of variables and menv indicates whether we should keep a
-    variable as argument for metavariables (currently we only keep λ-abstractions
-    but not variables declared with let). *)
+(** Check that a raw term has a given type and transform it into a term along the way. The environment env binds variables to values, the typing environment tenv provides the type of variables and menv indicates whether we should keep a variable as argument for metavariables (currently we only keep λ-abstractions but not variables declared with let). *)
 let rec check env tenv menv l (t : RawTerm.t) a : Term.t =
   (* Printf.printf "check %s : %s %s\n%!" (RawTerm.to_string t) (to_string ~environment:true a) (string_of_env env tenv menv l); *)
   match t, a with

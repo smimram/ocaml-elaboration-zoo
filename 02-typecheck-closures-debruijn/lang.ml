@@ -30,8 +30,8 @@ module RawTerm = struct
   (** Pi-abstract over multiple variables. *)
   let rec pi xx a b =
     match xx with
-    | [x] -> Pi(x, a, b)
-    | x::xx -> Pi(x, a, pi xx a b)
+    | [x] -> Pi (x, a, b)
+    | x::xx -> Pi (x, a, pi xx a b)
     | [] -> assert false
 end
 
