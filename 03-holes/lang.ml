@@ -361,5 +361,6 @@ and infer env tenv menv l (t : RawTerm.t) : Term.t * t =
     let u, b = infer (vt::env) ((x,va)::tenv) (false::menv) (l+1) u in
     Let (x, a, t, u), b
   | Hole ->
+    (* TODO: where is it enforced that the filler for the type is actually the type for the filler for the term?? *)
     let a = eval env (Term.metavariable ()) in
     Term.metavariable (), a
