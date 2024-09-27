@@ -22,25 +22,27 @@ module Term = struct
 end
 
 (** A value. *)
-(* NB: we could even be more specific by introducing neutral values *)
 type t =
-  | Var of string
-  | App of t * t
   | Abs of environment * string * Term.t  (** A λ-abstraction in an environment. *)
+  | Neu of neutral
+
+(** A neutral value. *)
+and neutral =
+  | Var of string
+  | App of neutral * t
 
 and environment = (string * t) list
 
 (** Compute weak head normal form. *)
 let rec eval (env : environment) : Term.t -> t = function
-  | Var x ->
-    Option.value ~default:(Var x) (List.assoc_opt x env)
+  | Var x -> Option.value ~default:(Neu (Var x)) (List.assoc_opt x env)
   | Abs (x, t) -> Abs (env, x, t)
   | App (t, u) ->
     let u = eval env u in
     (
       match eval env t with
       | Abs (env, x, t) -> eval ((x,u)::env) t
-      | t -> App (t, u)
+      | Neu t -> Neu (App (t, u))
     )
   | Let (x, t, u) ->
     let t = eval env t in
@@ -54,12 +56,14 @@ let rec fresh ns x =
 
 (** Reify normal form. *)
 let rec quote ns : t -> Term.t = function
-  | Var x -> Var x
-  | App (t, u) -> App (quote ns t, quote ns u)
   | Abs (env, x, t) ->
     let x' = fresh ns x in
-    let t = eval ((x, Var x')::env) t in
+    let t = eval ((x, Neu (Var x'))::env) t in
     Abs (x', quote (x'::ns) t)
+  | Neu t ->
+    match t with
+    | Var x -> Var x
+    | App (t, u) -> App (quote ns (Neu t), quote ns u)
 
 (** Compute the normal form of a term. *)
 let normalize env t =
