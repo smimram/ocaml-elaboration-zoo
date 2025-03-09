@@ -1,0 +1,17 @@
+(ocamlyacc
+ (modules parser)
+)
+
+(ocamllex
+ (modules lexer)
+)
+
+(executable
+ (flags (:standard -w -27))
+ (name eval)
+)
+
+(rule
+ (alias runtest)
+ (action (run ./eval.exe example.txt))
+)
