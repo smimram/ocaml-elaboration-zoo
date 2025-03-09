@@ -1,6 +1,6 @@
 %{
-    open Lang
-    open RawTerm
+open Lang
+open RawTerm
 %}
 
 %token LET EQ IN
