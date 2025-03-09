@@ -230,7 +230,7 @@ and unify_solve l m s t =
     let rec aux pren : value -> term = function
       | Meta (m',s) ->
         unify_check (m <> m'); (* occurs check *)
-        aux_spine pren (Meta m'.id) s
+        aux_spine pren (Term.Meta m'.id) s
       | Abs ((x,i),(env,t)) ->
         let t = eval ((var pren.cod)::env) t in
         Abs ((x,i),aux (lift pren) t)
