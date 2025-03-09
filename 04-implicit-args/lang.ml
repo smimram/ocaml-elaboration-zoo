@@ -136,6 +136,11 @@ let rec infer (ctx:Context.t) (t:preterm) : term * ty =
 
 and check (ctx:Context.t) (t:preterm) (a:ty) : term =
   let pos = t.pos in
-  let t, a' = infer ctx t in
-  if not @@ V.unify ctx.Context.level a' a then type_error pos "expression has type %s but %s expected" (V.to_string a') (V.to_string a);
-  t
+  match t, V.force a with
+  (* | Abs ((x,i,a),t), Pi ((x',i',a'),(env,b)) when (x = x' && i' = `Implicit) -> *)
+    (* let t = check (bind ctx x a) t ( *)
+    (* Abs ((x,i'), che *)
+  | _ ->
+    let t, a' = infer ctx t in
+    if not @@ V.unify ctx.Context.level a' a then type_error pos "expression has type %s but %s expected" (V.to_string a') (V.to_string a);
+    t

@@ -12,9 +12,6 @@ type t =
   | Pi of (string * icit * ty) * closure
   | Type
 
-  | Unit | U
-  | Nat | Z | S of t option | Ind_nat of t list
-
 and ty = t
 
 and environment = t list
@@ -123,12 +120,6 @@ let rec eval (env:environment) (t:term) =
     let s = List.filter_map2 (fun t d -> if d = `Bound then Some (`Explicit, t) else None) env bds in
     app_spine t s
   | Type -> Type
-  | Unit -> Unit
-  | U -> U
-  | Nat -> Nat
-  | Z -> Z
-  | S -> S None
-  | Ind_nat -> Ind_nat []
 
 (** Apply a value to another. *)
 and app (t:t) (i,u) =
@@ -136,7 +127,6 @@ and app (t:t) (i,u) =
   | Abs ((_,i'), (env,t)) -> assert (i = i'); eval (u::env) t
   | Var (x,s) -> Var (x, (i,u)::s)
   | Meta (m,s) -> Meta (m,(i,u)::s)
-  | S None -> S (Some u)
   | _ -> failwith "TODO: unhandled app"
 
 (** Apply a value to a spine. *)
@@ -156,10 +146,6 @@ let rec quote l (t:t) : term =
     | (i,u)::s -> App (app_spine t s, (i, quote l u))
     | [] -> t
   in
-  let rec app_explicit_spine t : t list -> term = function
-    | u::s -> App (app_explicit_spine t s, (`Explicit, quote l u))
-    | [] -> t
-  in
   match force t with
   | Abs ((x,i),(env,t)) ->
     let t = quote (l+1) @@ eval ((var l)::env) t in
@@ -173,13 +159,6 @@ let rec quote l (t:t) : term =
   | Meta (m, s) ->
     app_spine (Meta m.id) s
   | Type -> Type
-  | Unit -> Unit
-  | U -> U
-  | Nat -> Nat
-  | Z -> Z
-  | S None -> S
-  | S (Some t) -> App (S, (`Explicit, quote l t))
-  | Ind_nat s -> app_explicit_spine Ind_nat s
 
 let normalize env t = quote 0 @@ eval env t
 
@@ -201,6 +180,9 @@ let rec unify l (t:t) (u:t) =
     let b = eval ((var l)::env) b in
     let b' = eval ((var l)::env') b' in
     unify (l+1) b b'
+  | Var (x,s), Var (x',s') ->
+    unify_check (x = x');
+    unify_spines l s s'
   | Pi ((_,i,a),(env,b)), Pi ((_,i',a'),(env',b')) ->
     unify_check (i = i');
     unify l a a';
@@ -208,16 +190,6 @@ let rec unify l (t:t) (u:t) =
     let b' = eval ((var l)::env') b' in
     unify (l+1) b b'
   | Type, Type -> ()
-  | Unit, Unit -> ()
-  | Nat, Nat -> ()
-  | Z, Z -> ()
-  | S t, S t' ->
-    (
-      match t, t' with
-      | None, None -> ()
-      | Some t, Some t' -> unify l t t'
-      | _ -> raise Unification
-    )
   | Meta (m,s), Meta (m',s') when m.id = m'.id -> unify_spines l s s'
   | Meta (m,s), t -> unify_solve l m s t
   | t, Meta (m,s) -> unify_solve l m s t
@@ -270,13 +242,6 @@ and unify_solve l m s t =
         let t = eval ((var pren.cod)::env) t in
         Pi ((x,i,aux pren a), aux (lift pren) t)
       | Type -> Type
-      | Unit -> Unit
-      | U -> U
-      | Nat -> Nat
-      | Z -> Z
-      | S None -> S
-      | S (Some t) -> App (S, (`Explicit, aux pren t))
-      | Ind_nat s -> Term.rev_apps_explicit Ind_nat (List.map (aux pren) s)
     and aux_spine pren (t:term) : spine -> term = function
       | (i,u)::s -> App (aux_spine pren t s, (i, aux pren u))
       | [] -> t
@@ -289,5 +254,6 @@ and unify_solve l m s t =
   m.value <- Some solution
 
 let unify l t u =
+  (* Printf.printf "unify %s with %s\n%!" (to_string t) (to_string u); *)
   try unify l t u; true
   with Unification -> false

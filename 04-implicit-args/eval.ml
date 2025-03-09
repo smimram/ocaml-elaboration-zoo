@@ -33,7 +33,6 @@ let () =
   Printf.printf "Typechecking... \n%!";
   let t, a = Lang.infer Lang.Context.empty t in
   let mv = String.concat "\n" @@ List.mapi (fun i t -> Printf.sprintf "?%d = %s" i (Option.fold ~none:"?" ~some:Value.to_string t.Value.value)) @@ Dynarray.to_list Value.metavariables in
-  (* let mv = List.map (fun (i,m) -> Term.to_string (Term.Meta i) ^ " = " ^ (match !(snd m) with None -> "?" | Some t -> to_string t)) !metavariables |> String.concat "\n" in *)
   Printf.printf "done: %s\n%s\n%s\n\n%!" (Value.to_string a) mv (Term.to_string t);
   Printf.printf "Normalizing... \n%!";
   let t = Value.normalize [] t in
