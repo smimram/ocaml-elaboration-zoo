@@ -50,13 +50,6 @@ let pis ?pos args a =
     | x::l -> mk ~pos (Pi (x, aux l))
   in
   aux args
-
-(*
-(** Let declaration. *)
-let letin ?pos x t a u =
-  let pos = Option.value ~default:a.pos pos in
-  mk ~pos (App (mk ~pos (Abs ((x, `Explicit, a), u)), (`Explicit, t)))
-*)
  
 let rec to_string ?(pa=false) e =
   let pa s = if pa then "("^s^")" else s in
