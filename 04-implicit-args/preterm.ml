@@ -19,7 +19,7 @@ and desc =
   | Abs of (var * icit * ty option) * t (** λ-abstraction *)
   | App of t * (icit * t)
   | Var of var
-  | Pi of (var * icit * ty) * t
+  | Pi of (var * icit * ty option) * t
   | Type (** the type of types *)
   | Hole
 
@@ -31,7 +31,7 @@ let mk ?pos desc =
 
 (** Non-dependent arrow. *)
 let arr ?pos a b =
-  mk ?pos (Pi (("_", `Explicit, a), b))
+  mk ?pos (Pi (("_", `Explicit, Some a), b))
 
 (** Multiple abstractions. *)
 let abss ?pos a e =
@@ -75,9 +75,10 @@ let rec to_string ?(pa=false) e =
       | `Implicit -> "{" ^ to_string e ^ "}"
     in
     pa (Printf.sprintf "%s %s" (to_string f) e)
-  | Pi ((x,i,t),e) ->
-    let arg = icit_pa i (x ^ " : " ^ to_string t) in
-    pa (Printf.sprintf "%s -> %s" arg (to_string e))
+  | Pi ((x,i,a),b) ->
+    let a = match a with Some a -> " : " ^ to_string a | None -> "" in
+    let arg = icit_pa i (x ^ a) in
+    pa (Printf.sprintf "%s -> %s" arg (to_string b))
   | Var x -> x
   | Hole -> "_"
   | Type -> "type"

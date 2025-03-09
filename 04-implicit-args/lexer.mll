@@ -21,6 +21,8 @@ rule token = parse
   | "->" { TO }
   | "(" { LPAR }
   | ")" { RPAR }
+  | "{" { LACC }
+  | "}" { RACC }
   | "_" { HOLE }
   | "U" { U }
   | (['A'-'Z''a'-'z']['A'-'Z''a'-'z''0'-'9']* as s) { IDENT s }

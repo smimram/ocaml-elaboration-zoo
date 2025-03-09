@@ -10,7 +10,7 @@ let mk ?pos t =
 
 %token LET EQ IN
 %token LAMBDA DOT APP COLON TO U HOLE
-%token LPAR RPAR
+%token LPAR RPAR LACC RACC
 %token<string> IDENT
 %token EOF
 
@@ -34,7 +34,8 @@ term:
     | LAMBDA vars DOT term { abss $2 $4 }
     | term term %prec APP { mk (App ($1,(`Explicit,$2))) }
     | IDENT { mk (Var $1) }
-    | LPAR IDENT COLON term RPAR TO term { mk (Pi (($2,`Explicit,$4),$7)) }
+    | LPAR IDENT COLON term RPAR TO term { mk (Pi (($2,`Explicit,Some $4),$7)) }
+    | LACC IDENT COLON term RACC TO term { mk (Pi (($2,`Implicit,Some $4),$7)) }
     | term TO term { arr ~pos:(defpos()) $1 $3 }
     | U { mk Type }
     | LPAR term RPAR { $2 }

@@ -120,7 +120,11 @@ let rec infer (ctx:Context.t) (t:preterm) : term * ty =
     in
     Var n, a
   | Pi ((x,i,a),b) ->
-    let a = check ctx a Type in
+    let a =
+      match a with
+      | Some a -> check ctx a Type
+      | None -> fresh_meta ctx
+    in
     let b = check (Context.bind ctx x (V.eval ctx.environment a)) b Type in
     Pi ((x,i,a),b), Type
   | Type ->
