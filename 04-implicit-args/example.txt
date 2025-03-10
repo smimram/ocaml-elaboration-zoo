@@ -4,8 +4,8 @@ let id : (A : U) -> A -> A = \A x.x;
 -- bracketed args are implicit, elaboration inserts implicit lambdas for them (if they're not already present)
 let id : {A : U} -> A -> A = \x. x;   -- elaborated to \{A} x. x
 
--- -- implicit arg types can be omitted
--- let const : {A B} -> A -> B -> A = \x y. x;
+-- implicit arg types can be omitted
+let const : {A B} -> A -> B -> A = \x y. x;
 
 -- -- function arguments can be grouped:
 -- let group1 : {A B : U}(x y z : A) -> B -> B = \x y z b. b;
