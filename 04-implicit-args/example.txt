@@ -46,9 +46,9 @@ Implicit lambda insertion rules:
     - otherwise, we insert \{x}
 -}
 
--- -- Here the output rhs is \{A}. id {A}. First, we insert \{A}, then we apply id to {?n},
--- -- and ?n is solved to A a bit later.
--- let insert : {A} -> A -> A = id;
+-- Here the output rhs is \{A}. id {A}. First, we insert \{A}, then we apply id to {?n},
+-- and ?n is solved to A a bit later.
+let insert : {A} -> A -> A = id;
 
 -- Here we don't insert, because rhs is already an implicit lambda.
 let noinsert = \{A} x. the A x;
@@ -91,7 +91,7 @@ let comp : {A}{B : A -> U}{C : {a} -> B a -> U}
            -> C (g a)
     = \f g a. f (g a);
 
--- let compExample = comp (cons true) (cons false) nil;
+let compExample = comp (cons true) (cons false) nil;
 
 -- nat
 let Nat : U

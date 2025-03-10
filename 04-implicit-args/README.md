@@ -9,3 +9,7 @@ Compared to previous versions this implementation
   - it is split in various modules
   - environments (for types, values, etc.) are packed in one record
 - add support for position in errors
+
+TODO:
+
+- add support for named implicit arguments
