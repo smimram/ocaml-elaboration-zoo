@@ -7,9 +7,9 @@ let id : {A : U} -> A -> A = \x. x;   -- elaborated to \{A} x. x
 -- implicit arg types can be omitted
 let const : {A B} -> A -> B -> A = \x y. x;
 
--- -- function arguments can be grouped:
--- let group1 : {A B : U}(x y z : A) -> B -> B = \x y z b. b;
--- let group2 : {A B}(x y z : A) -> B -> B = \x y z b. b;
+-- function arguments can be grouped:
+let group1 : {A B : U} (x y z : A) -> B -> B = \x y z b. b;
+let group2 : {A B} (x y z : A) -> B -> B = \x y z b. b;
 
 -- -- explicit id function used for annotation as in Idris
 -- let the : (A : _) -> A -> A = \_ x. x;

@@ -32,8 +32,7 @@ def:
 
 term:
   | LAMBDA idents DOT term { abss (List.map (fun x -> x,`Explicit,None) $2) $4 }
-  | LPAR IDENT opt_type RPAR TO term { mk (Pi (($2,`Explicit,$3),$6)) }
-  | LACC idents opt_type RACC TO term { pis ~pos:(defpos()) (List.map (fun x -> x,`Implicit,$3) $2) $6 }
+  | pi_args TO term { pis ~pos:(defpos()) $1 $3 }
   | term TO term { arr ~pos:(defpos()) $1 $3 }
   | aterm { $1 }
 
@@ -56,3 +55,12 @@ idents:
 opt_type:
   | COLON term { Some $2 }
   | { None }
+
+pi_arg:
+  | LPAR idents opt_type RPAR { List.map (fun x -> x,`Explicit,$3) $2 }
+  | LACC idents opt_type RACC { List.map (fun x -> x,`Implicit,$3) $2 }
+
+pi_args:
+  | pi_arg pi_args { $1@$2 }
+  | pi_arg { $1 }
+
