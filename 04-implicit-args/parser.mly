@@ -24,23 +24,23 @@ let mk ?pos t =
 %%
 
 main:
-   | def EOF { $1 }
+  | def EOF { $1 }
 
 def:
-    | LET IDENT COLON term EQ term IN def { mk (Let ($2,$4,$6,$8)) }
-    | term { $1 }
+  | LET IDENT COLON term EQ term IN def { mk (Let ($2,$4,$6,$8)) }
+  | term { $1 }
 
 term:
-    | LAMBDA vars DOT term { abss $2 $4 }
-    | term term %prec APP { mk (App ($1,(`Explicit,$2))) }
-    | IDENT { mk (Var $1) }
-    | LPAR IDENT COLON term RPAR TO term { mk (Pi (($2,`Explicit,Some $4),$7)) }
-    | LACC IDENT COLON term RACC TO term { mk (Pi (($2,`Implicit,Some $4),$7)) }
-    | term TO term { arr ~pos:(defpos()) $1 $3 }
-    | U { mk Type }
-    | LPAR term RPAR { $2 }
-    | HOLE { mk Hole }
+  | LAMBDA vars DOT term { abss $2 $4 }
+  | term term %prec APP { mk (App ($1,(`Explicit,$2))) }
+  | IDENT { mk (Var $1) }
+  | LPAR IDENT COLON term RPAR TO term { mk (Pi (($2,`Explicit,Some $4),$7)) }
+  | LACC IDENT COLON term RACC TO term { mk (Pi (($2,`Implicit,Some $4),$7)) }
+  | term TO term { arr ~pos:(defpos()) $1 $3 }
+  | U { mk Type }
+  | LPAR term RPAR { $2 }
+  | HOLE { mk Hole }
 
 vars:
-    | IDENT vars { ($1, `Explicit, None) :: $2 }
-    | { [] }
+  | IDENT vars { ($1, `Explicit, None) :: $2 }
+  | { [] }
