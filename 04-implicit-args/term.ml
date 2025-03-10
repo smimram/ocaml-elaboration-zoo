@@ -28,7 +28,7 @@ let rec to_string vars = function
   | Var n -> if n < 0 || n >= List.length vars then Printf.sprintf "x#%d" n else List.nth vars n
   | Pi ((x,i,a),b) ->
     let x = icit_pa i (x ^ " : " ^ to_string vars a) in
-    Printf.sprintf "%s -> %s" x (to_string vars b)
+    Printf.sprintf "%s -> %s" x (to_string (x::vars) b)
   | Type -> "type"
   | Meta m -> "?" ^ string_of_int m
   | InsertedMeta (m,_) -> "?" ^ string_of_int m
