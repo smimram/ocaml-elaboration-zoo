@@ -65,6 +65,17 @@ let fresh_meta (ctx:Context.t) =
   let m = Value.fresh_meta () in
   InsertedMeta (m.id, ctx.bds)
 
+(** Apply all implicit arguments to metavariables. *)
+let rec insert ctx (t:term) (a:ty) =
+  match V.force a with
+  | Pi((_,`Implicit,_),(env,b)) ->
+    let m = fresh_meta ctx in
+    let m' = V.eval ctx.environment m in
+    let t = App (t,(`Implicit,m)) in
+    let a = V.eval (m'::env) b in
+    insert ctx t a
+  | _ -> t, a
+
 let rec infer (ctx:Context.t) (t:preterm) : term * ty =
   let pos = t.pos in
   match t.desc with
@@ -95,18 +106,8 @@ let rec infer (ctx:Context.t) (t:preterm) : term * ty =
       match i with
       | `Implicit -> infer ctx t
       | `Explicit ->
-        (* Apply all implicit arguments to metavariables. *)
-        let rec aux ((t:term),(c:ty)) =
-          match V.force c with
-          | Pi((_,`Implicit,_),(env,b)) ->
-            let m = fresh_meta ctx in
-            let m' = V.eval ctx.environment m in
-            let t = App (t,(`Implicit,m)) in
-            let c = V.eval (m'::env) b in
-            aux (t, c)
-          | _ -> t,c
-        in
-        aux @@ infer ctx t
+        let t, a = infer ctx t in
+        insert ctx t a
     in
     let a,(env,b) =
       match c with
@@ -176,10 +177,8 @@ and check (ctx:Context.t) (t:preterm) (a:ty) : term =
     let u = check (Context.define ctx x vt va) u a' in
     Let (x,a,t,u)
 
-  | Hole, a ->
-    fresh_meta ctx
-
-  | _ ->
-    let t, a' = infer ctx t in
-    if not @@ V.unify ctx.level a' a then type_error pos "expression has type %s but %s expected" (V.to_string a') (V.to_string a);
+  | _, a' ->
+    let t, a = infer ctx t in
+    let t, a = insert ctx t a in
+    if not @@ V.unify ctx.level a a' then type_error pos "expression has type %s but %s expected" (V.to_string a) (V.to_string a');
     t

@@ -78,10 +78,10 @@ let cons : {A} -> A -> List A -> List A
     = \x xs L cons nil. cons x (xs L cons nil);
 let map : {A B} -> (A -> B) -> List A -> List B
     = \{A}{B} f xs L c n. xs L (\a. c (f a)) n;
--- let list0 : List Bool
-    -- = nil;
--- let list1 : List Bool
-    -- = cons true (cons false (cons true nil));
+let list0 : List Bool
+    = nil;
+let list1 : List Bool
+    = cons true (cons false (cons true nil));
 
 -- dependent function composition
 let comp : {A}{B : A -> U}{C : {a} -> B a -> U}
@@ -108,9 +108,7 @@ let Eq : {A} -> A -> A -> U
 let refl : {A}{x : A} -> Eq x x
     = \_ px. px;
 
--- let sym : {A x y} → Eq {A} x y → Eq y x
-  -- = λ {A}{x}{y} p. p (λ y. Eq y x) refl;
+let sym : {A x y} → Eq {A} x y → Eq y x
+  = λ {A}{x}{y} p. p (λ y. Eq y x) refl;
 
--- the (Eq (mul ten ten) hundred) refl
-
-U
+the (Eq (mul ten ten) hundred) refl
