@@ -69,7 +69,11 @@ let rec infer (ctx:Context.t) (t:preterm) : term * ty =
   let pos = t.pos in
   match t.desc with
   | Let (x,a,t,u) ->
-    let a = V.eval ctx.environment @@ check ctx a V.Type in
+    let a =
+      match a with
+      | Some a -> V.eval ctx.environment @@ check ctx a V.Type
+      | None -> V.eval ctx.environment @@ fresh_meta ctx
+    in
     let t = check ctx t a in
     let u, b = infer (Context.define ctx x (V.eval ctx.environment t) a) u in
     (* TODO: check this quote *)

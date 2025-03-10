@@ -11,11 +11,11 @@ let const : {A B} -> A -> B -> A = \x y. x;
 let group1 : {A B : U} (x y z : A) -> B -> B = \x y z b. b;
 let group2 : {A B} (x y z : A) -> B -> B = \x y z b. b;
 
--- -- explicit id function used for annotation as in Idris
--- let the : (A : _) -> A -> A = \_ x. x;
+-- explicit id function used for annotation as in Idris
+let the : (A : _) -> A -> A = \_ x. x;
 
--- -- implicit args can be explicitly given
--- let argTest1 = const {U}{U} U;
+-- implicit args can be explicitly given
+let argTest1 = const {U} {U} U;
 
 -- -- or can be given by name (names come from the function types)
 -- let argTest2 = const {B = U} U;  -- only give B, the second implicit arg

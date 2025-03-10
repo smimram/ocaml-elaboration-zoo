@@ -27,11 +27,11 @@ main:
   | def EOF { $1 }
 
 def:
-  | LET IDENT COLON term EQ term IN def { mk (Let ($2,$4,$6,$8)) }
+  | LET IDENT opt_type EQ term IN def { mk (Let ($2,$3,$5,$7)) }
   | term { $1 }
 
 term:
-  | LAMBDA idents DOT term { abss (List.map (fun x -> x,`Explicit,None) $2) $4 }
+  | LAMBDA abs_args DOT term { abss $2 $4 }
   | pi_args TO term { pis ~pos:(defpos()) $1 $3 }
   | term TO term { arr ~pos:(defpos()) $1 $3 }
   | aterm { $1 }
@@ -39,6 +39,7 @@ term:
 // Application term
 aterm:
   | aterm sterm { mk (App ($1,(`Explicit,$2))) }
+  | aterm LACC term RACC { mk (App ($1,(`Implicit,$3))) }
   | sterm { $1 }
 
 // Simple term
@@ -48,13 +49,21 @@ sterm:
   | LPAR term RPAR { $2 }
   | HOLE { mk Hole }
 
-idents:
-  | IDENT idents { $1 :: $2 }
-  | IDENT { [$1] }
+abs_arg:
+  | IDENT { $1,`Explicit,None }
+  | HOLE { "_",`Explicit,None }
+
+abs_args:
+  | abs_arg abs_args { $1::$2 }
+  | abs_arg { [$1] }
 
 opt_type:
   | COLON term { Some $2 }
   | { None }
+
+idents:
+  | IDENT idents { $1::$2 }
+  | IDENT { [$1] }
 
 pi_arg:
   | LPAR idents opt_type RPAR { List.map (fun x -> x,`Explicit,$3) $2 }

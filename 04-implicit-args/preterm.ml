@@ -15,7 +15,7 @@ type t =
 
 (** The contents of an expression. *)
 and desc =
-  | Let of var * ty * t * t
+  | Let of var * ty option * t * t
   | Abs of (var * icit * ty option) * t (** λ-abstraction *)
   | App of t * (icit * t)
   | Var of var
@@ -55,7 +55,8 @@ let rec to_string ?(pa=false) e =
   let pa s = if pa then "("^s^")" else s in
   match e.desc with
   | Let (x,a,t,u) ->
-    Printf.sprintf "let %s : %s = %s in\n%s" x (to_string a) (to_string t) (to_string u)
+    let a = match a with Some a -> " : " ^ to_string a | None -> "" in
+    Printf.sprintf "let %s%s = %s in\n%s" x a (to_string t) (to_string u)
   | Abs ((x,i,a),t) ->
     let arg =
       let a = match a with Some a -> " : " ^ to_string a | None -> "" in
