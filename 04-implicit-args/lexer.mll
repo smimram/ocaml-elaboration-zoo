@@ -19,6 +19,7 @@ rule token = parse
   | "=" { EQ }
   | ":" { COLON }
   | "->" { TO }
+  | "{-" { comment 0 lexbuf; token lexbuf }
   | "(" { LPAR }
   | ")" { RPAR }
   | "{" { LACC }
@@ -30,3 +31,8 @@ rule token = parse
   | space+ { token lexbuf }
   | "\n" { new_line lexbuf; token lexbuf }
   | eof { EOF }
+
+and comment level = parse
+  | "{-" { comment (level+1) lexbuf }
+  | "-}" { if level > 0 then comment (level-1) lexbuf }
+  | _ { comment level lexbuf }

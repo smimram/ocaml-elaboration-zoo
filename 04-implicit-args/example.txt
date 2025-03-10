@@ -28,23 +28,23 @@ let id2 : {A} -> A -> A = \{A} x. x;
 -- let namedLam2 : {A B C} -> A -> B -> C -> A = \{B = X} a b c. a; -- second arg in scope as X
 -- let namedLam2 : {A B C} -> A -> B -> C -> A = \{C = X} a b c. a; -- third arg in scope as X
 
--- {-
--- Implicit application insertion rules:
+{-
+Implicit application insertion rules:
 
-  -- - In "t u", if t has type {x : A} -> B, we insert a fresh application as t {?a} u
-  -- - In "t {x = u}", we insert applications until we hit the "x" domain name. if t's type
-    -- has no such domain binder name, it's an error.
-  -- - In "t {u}", we do not insert applications
-  -- - Otherwise, given t,
-    -- - if t = \{x}. t, we don't insert
-    -- - otherwise if t has type {x : A} -> B, we insert a fresh application
+  - In "t u", if t has type {x : A} -> B, we insert a fresh application as t {?a} u
+  - In "t {x = u}", we insert applications until we hit the "x" domain name. if t's type
+    has no such domain binder name, it's an error.
+  - In "t {u}", we do not insert applications
+  - Otherwise, given t,
+    - if t = \{x}. t, we don't insert
+    - otherwise if t has type {x : A} -> B, we insert a fresh application
 
--- Implicit lambda insertion rules:
+Implicit lambda insertion rules:
 
-  -- - We check t with {x : A} -> B
-    -- - if t is an implicit lambda or a named implicit lambda with name=x, we don't insert
-    -- - otherwise, we insert \{x}
--- -}
+  - We check t with {x : A} -> B
+    - if t is an implicit lambda or a named implicit lambda with name=x, we don't insert
+    - otherwise, we insert \{x}
+-}
 
 -- -- Here the output rhs is \{A}. id {A}. First, we insert \{A}, then we apply id to {?n},
 -- -- and ?n is solved to A a bit later.
