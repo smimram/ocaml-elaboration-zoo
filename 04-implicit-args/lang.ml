@@ -144,6 +144,7 @@ let rec infer (ctx:Context.t) (t:preterm) : term * ty =
 and check (ctx:Context.t) (t:preterm) (a:ty) : term =
   let pos = t.pos in
   match t.desc, V.force a with
+
   | Abs ((x,i,a),t), Pi ((x',i',a'),(env,b)) when i = i' ->
     if a <> None then
       (
@@ -162,6 +163,21 @@ and check (ctx:Context.t) (t:preterm) (a:ty) : term =
     let b = V.eval ((V.var ctx.level)::env) b in
     let t = check (Context.new_binder ctx x a) t b in
     Abs ((x,`Implicit),t)
+
+  | Let (x,a,t,u), a' ->
+    let a =
+      match a with
+      | Some a -> check ctx a Type
+      | None -> fresh_meta ctx
+    in
+    let va = V.eval ctx.environment a in
+    let t = check ctx t va in
+    let vt = V.eval ctx.environment t in
+    let u = check (Context.define ctx x vt va) u a' in
+    Let (x,a,t,u)
+
+  | Hole, a ->
+    fresh_meta ctx
 
   | _ ->
     let t, a' = infer ctx t in

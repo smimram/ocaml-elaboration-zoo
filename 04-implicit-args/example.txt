@@ -69,25 +69,27 @@ let false : Bool
 let not : Bool -> Bool
     = \b B t f. b B f t;
 
--- -- lists
--- let List : U -> U
-    -- = \A. (L : _) -> (A -> L -> L) -> L -> L;
--- let nil : {A} -> List A
-    -- = \L cons nil. nil;
--- let cons : {A} -> A -> List A -> List A
-    -- = \x xs L cons nil. cons x (xs L cons nil);
--- let map : {A B} -> (A -> B) -> List A -> List B
-    -- = \{A}{B} f xs L c n. xs L (\a. c (f a)) n;
+-- lists
+let List : U -> U
+    = \A. (L : _) -> (A -> L -> L) -> L -> L;
+let nil : {A} -> List A
+    = \L cons nil. nil;
+let cons : {A} -> A -> List A -> List A
+    = \x xs L cons nil. cons x (xs L cons nil);
+let map : {A B} -> (A -> B) -> List A -> List B
+    = \{A}{B} f xs L c n. xs L (\a. c (f a)) n;
+-- let list0 : List Bool
+    -- = nil;
 -- let list1 : List Bool
     -- = cons true (cons false (cons true nil));
 
--- -- dependent function composition
--- let comp : {A}{B : A -> U}{C : {a} -> B a -> U}
-           -- (f : {a}(b : B a) -> C b)
-           -- (g : (a : A) -> B a)
-           -- (a : A)
-           -- -> C (g a)
-    -- = \f g a. f (g a);
+-- dependent function composition
+let comp : {A}{B : A -> U}{C : {a} -> B a -> U}
+           (f : {a}(b : B a) -> C b)
+           (g : (a : A) -> B a)
+           (a : A)
+           -> C (g a)
+    = \f g a. f (g a);
 
 -- let compExample = comp (cons true) (cons false) nil;
 
