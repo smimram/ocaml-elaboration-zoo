@@ -1,7 +1,8 @@
+-- first basic test
 let id : (A : U) -> A -> A = \A x.x;
 
--- -- bracketed args are implicit, elaboration inserts implicit lambdas for them (if they're not already present)
--- let id : {A : U} -> A -> A = \x. x;   -- elaborated to \{A} x. x
+-- bracketed args are implicit, elaboration inserts implicit lambdas for them (if they're not already present)
+let id : {A : U} -> A -> A = \x. x;   -- elaborated to \{A} x. x
 
 -- -- implicit arg types can be omitted
 -- let const : {A B} -> A -> B -> A = \x y. x;

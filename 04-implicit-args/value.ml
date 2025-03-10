@@ -255,7 +255,7 @@ and unify_solve l m s t =
   Printf.printf "metavariable ?%d gets %s\n%!" m.id (to_string solution);
   m.value <- Some solution
 
-let unify l t u =
+let unify (l:level) t u =
   (* Printf.printf "unify %s with %s\n%!" (to_string t) (to_string u); *)
   try unify l t u; true
   with Unification -> false

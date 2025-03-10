@@ -1,3 +1,7 @@
+# Typechecking a dependent type theory with holes and implicit arguments
+
+This one is a decent starting point if you want to implement a dependent type theory. The only big missing part is inductive types.
+
 Compared to previous versions this implementation
 
 - adds support for implicit arguments, which are handled by inserting meta-variables during elaboration

@@ -45,6 +45,9 @@ module Context = struct
       bds = `Bound::ctx.bds;
     }
 
+  (** Insert a new binding. *)
+  let new_binder = bind
+
   (** Define a term to a given value and type. *)
   let define ctx x t a =
     {
@@ -136,11 +139,27 @@ let rec infer (ctx:Context.t) (t:preterm) : term * ty =
 
 and check (ctx:Context.t) (t:preterm) (a:ty) : term =
   let pos = t.pos in
-  match t, V.force a with
-  (* | Abs ((x,i,a),t), Pi ((x',i',a'),(env,b)) when (x = x' && i' = `Implicit) -> *)
-    (* let t = check (bind ctx x a) t ( *)
-    (* Abs ((x,i'), che *)
+  match t.desc, V.force a with
+  | Abs ((x,i,a),t), Pi ((x',i',a'),(env,b)) when i = i' ->
+    if a <> None then
+      (
+        let a = Option.get a in
+        let pos = a.pos in
+        let a = check ctx a Type in
+        let a = V.eval ctx.environment a in
+        if not @@ V.unify ctx.level a a' then type_error pos "expression has type %s but %s expected" (V.to_string a) (V.to_string a')
+      );
+    let b = V.eval ((V.var ctx.level)::env) b in
+    let t = check (Context.bind ctx x a') t b in
+    Abs ((x,i),t)
+
+  | _, Pi ((x,`Implicit,a),(env,b)) ->
+    (* Insert an implicit abstraction. *)
+    let b = V.eval ((V.var ctx.level)::env) b in
+    let t = check (Context.new_binder ctx x a) t b in
+    Abs ((x,`Implicit),t)
+
   | _ ->
     let t, a' = infer ctx t in
-    if not @@ V.unify ctx.Context.level a' a then type_error pos "expression has type %s but %s expected" (V.to_string a') (V.to_string a);
+    if not @@ V.unify ctx.level a' a then type_error pos "expression has type %s but %s expected" (V.to_string a') (V.to_string a);
     t
