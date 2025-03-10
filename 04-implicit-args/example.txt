@@ -93,20 +93,20 @@ let comp : {A}{B : A -> U}{C : {a} -> B a -> U}
 
 -- let compExample = comp (cons true) (cons false) nil;
 
--- -- nat
--- let Nat : U
-    -- = (N : U) -> (N -> N) -> N -> N;
--- let mul : Nat -> Nat -> Nat
-    -- = \a b N s z. a _ (b _ s) z;
--- let ten : Nat
-    -- = \N s z. s (s (s (s (s (s (s (s (s (s z)))))))));
--- let hundred = mul ten ten;
+-- nat
+let Nat : U
+    = (N : U) -> (N -> N) -> N -> N;
+let mul : Nat -> Nat -> Nat
+    = \a b N s z. a _ (b _ s) z;
+let ten : Nat
+    = \N s z. s (s (s (s (s (s (s (s (s (s z)))))))));
+let hundred = mul ten ten;
 
--- -- Leibniz equality
--- let Eq : {A} -> A -> A -> U
-    -- = \{A} x y. (P : A -> U) -> P x -> P y;
--- let refl : {A}{x : A} -> Eq x x
-    -- = \_ px. px;
+-- Leibniz equality
+let Eq : {A} -> A -> A -> U
+    = \{A} x y. (P : A -> U) -> P x -> P y;
+let refl : {A}{x : A} -> Eq x x
+    = \_ px. px;
 
 -- let sym : {A x y} → Eq {A} x y → Eq y x
   -- = λ {A}{x}{y} p. p (λ y. Eq y x) refl;

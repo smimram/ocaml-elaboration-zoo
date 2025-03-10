@@ -35,4 +35,5 @@ rule token = parse
 and comment level = parse
   | "{-" { comment (level+1) lexbuf }
   | "-}" { if level > 0 then comment (level-1) lexbuf }
+  | "\n" { new_line lexbuf; comment level lexbuf }
   | _ { comment level lexbuf }
