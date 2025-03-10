@@ -50,8 +50,9 @@ sterm:
   | HOLE { mk Hole }
 
 abs_arg:
-  | IDENT { $1,`Explicit,None }
+  | IDENT { $1,`Explicit,None} 
   | HOLE { "_",`Explicit,None }
+  | LACC IDENT RACC { $2,`Implicit,None} 
 
 abs_args:
   | abs_arg abs_args { $1::$2 }

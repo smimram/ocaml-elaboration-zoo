@@ -20,8 +20,8 @@ let argTest1 = const {U} {U} U;
 -- -- or can be given by name (names come from the function types)
 -- let argTest2 = const {B = U} U;  -- only give B, the second implicit arg
 
--- -- likewise, implicit lambdas can be explicitly given
--- let id2 : {A} -> A -> A = \{A} x. x;
+-- likewise, implicit lambdas can be explicitly given
+let id2 : {A} -> A -> A = \{A} x. x;
 
 -- -- we can also bind only some implicit args, using named implicit lambdas
 -- let namedLam  : {A B C} -> A -> B -> C -> A = \{B = B} a b c. a; -- second arg in scope as B
