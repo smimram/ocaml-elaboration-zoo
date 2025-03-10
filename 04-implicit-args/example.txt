@@ -50,25 +50,24 @@ Implicit lambda insertion rules:
 -- -- and ?n is solved to A a bit later.
 -- let insert : {A} -> A -> A = id;
 
--- -- Here we don't insert, because rhs is already an implicit lambda.
--- let noinsert = \{A} x. the A x;
+-- Here we don't insert, because rhs is already an implicit lambda.
+let noinsert = \{A} x. the A x;
 
--- -- Here we insert, because although we already have an implicit lambda, it is applied
--- -- explicitly to something.
--- let insert2 = (\{A} x. the A x) U;  -- (\{A} x. the A x) {U} U
+-- Here we insert, because although we already have an implicit lambda, it is applied explicitly to something.
+let insert2 = (\{A} x. the A x) U;  -- (\{A} x. the A x) {U} U
 
 
 -- --------------------------------------------------------------------------------
 
--- -- bool
--- let Bool : U
-    -- = (B : _) -> B -> B -> B;
--- let true : Bool
-    -- = \B t f. t;
--- let false : Bool
-    -- = \B t f. f;
--- let not : Bool -> Bool
-    -- = \b B t f. b B f t;
+-- bool
+let Bool : U
+    = (B : _) -> B -> B -> B;
+let true : Bool
+    = \B t f. t;
+let false : Bool
+    = \B t f. f;
+let not : Bool -> Bool
+    = \b B t f. b B f t;
 
 -- -- lists
 -- let List : U -> U
