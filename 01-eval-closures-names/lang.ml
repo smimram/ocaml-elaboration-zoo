@@ -13,6 +13,13 @@ module Term = struct
     | x::xx -> Abs(x, abs xx t)
     | [] -> assert false
 
+  (** Free variables of a term. *)
+  let rec free_vars = function
+    | Var x -> [x]
+    | Abs (x, t) -> List.filter (fun y -> y <> x) (free_vars t)
+    | App (t, u) -> free_vars t @ free_vars u
+    | Let (x, t, u) -> free_vars t @ List.filter (fun y -> y <> x) (free_vars u)
+
   (** String representation. *)
   let rec to_string = function
     | Var x -> x
@@ -67,4 +74,5 @@ let rec quote ns : t -> Term.t = function
 
 (** Compute the normal form of a term. *)
 let normalize env t =
-  eval env t |> quote (List.map fst env)
+  (* Fresh names must avoid the free variables of the term, which are kept as is. *)
+  eval env t |> quote (List.map fst env @ Term.free_vars t)
