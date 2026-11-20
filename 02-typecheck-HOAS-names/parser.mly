@@ -4,14 +4,14 @@ open Term
 %}
 
 %token LET EQ IN
-%token LAMBDA DOT APP PI COLON TO U
+%token LAMBDA DOT APP COLON TO U
 %token LPAR RPAR
 %token<string> IDENT
 %token EOF
 
 %nonassoc LAMBDA DOT
-%nonassoc IDENT LPAR U
 %right TO
+%nonassoc IDENT LPAR U
 %nonassoc APP
 
 %start main
