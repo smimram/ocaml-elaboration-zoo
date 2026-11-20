@@ -33,7 +33,16 @@ let () =
   close_in ic;
   Printf.printf "Parsing... done:\n%s\n\n%!" (RawTerm.to_string t);
   Printf.printf "Typechecking... \n%!";
-  let t, a = infer [] [] [] 0 t in
+  let t, a =
+    try infer [] [] [] 0 t
+    with
+    | Typing e ->
+      Printf.eprintf "Typing error: %s\n%!" e;
+      exit 1
+    | Unification ->
+      Printf.eprintf "Typing error: could not unify\n%!";
+      exit 1
+  in
   let mv = List.map (fun (i,m) -> Term.to_string (Term.Meta i) ^ " = " ^ (match !(snd m) with None -> "?" | Some t -> to_string t)) !metavariables |> String.concat "\n" in
   Printf.printf "done: %s\n%s\n%s\n\n%!" (Term.to_string (quote 0 a)) mv (Term.to_string t);
   Printf.printf "Normalizing... \n%!";
