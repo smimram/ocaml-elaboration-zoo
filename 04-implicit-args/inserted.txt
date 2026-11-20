@@ -1,0 +1,4 @@
+-- the inserted implicit B does not shadow the definition of B
+let B : U -> U = \x. x;
+let g : {B : U} -> U -> U = \x. B x;
+g

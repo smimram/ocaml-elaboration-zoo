@@ -1,0 +1,5 @@
+-- unification up to η
+let Eq : {A} -> A -> A -> U = \{A} x y. (P : A -> U) -> P x -> P y;
+let refl : {A}{x : A} -> Eq x x = \_ px. px;
+let e : (f : U -> U) -> Eq {U -> U} f (\x. f x) = \f. refl;
+e

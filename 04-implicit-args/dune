@@ -15,3 +15,30 @@
  (alias runtest)
  (action (run ./eval.exe example.txt))
 )
+
+(rule
+ (alias runtest)
+ (action (run ./eval.exe eta.txt))
+)
+
+; This one should be rejected.
+(rule
+ (alias runtest)
+ (action (ignore-outputs (with-accepted-exit-codes 1 (run ./eval.exe fail-eta.txt))))
+)
+
+(rule
+ (alias runtest)
+ (action (run ./eval.exe inserted.txt))
+)
+
+; This one should be rejected.
+(rule
+ (alias runtest)
+ (action (ignore-outputs (with-accepted-exit-codes 1 (run ./eval.exe fail-inserted.txt))))
+)
+
+(rule
+ (alias runtest)
+ (action (run ./eval.exe meta-app.txt))
+)

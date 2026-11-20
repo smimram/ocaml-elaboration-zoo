@@ -1,0 +1,4 @@
+-- the inserted implicit B cannot be referred to
+let the : (A : U) -> A -> A = \_ x. x;
+let g : {B : U} -> B -> B = \x. the B x;
+g
