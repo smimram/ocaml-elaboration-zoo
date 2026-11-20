@@ -3,13 +3,13 @@
     open Term
 %}
 
-%token LET EQ IN
-%token LAMBDA DOT APP
+%token LET IN
+%token LAMBDA APP
 %token LPAR RPAR
 %token<int> IDENT
 %token EOF
 
-%nonassoc LAMBDA DOT
+%nonassoc LAMBDA
 %nonassoc IDENT LPAR
 %nonassoc APP
 
