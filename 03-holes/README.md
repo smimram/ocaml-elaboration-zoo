@@ -35,7 +35,7 @@ and it gets solved in the following steps.
    ?α = λ x₀ ... xₙ . u
    ```
    
-   (and of course, me must further check that multiple solutions to the same `?α` agree). Here, we immediately replace the metavariable by its solution (more precisely, we update a reference in the metavariable, which was formerly pointing to nothing, represented here by `None`).
+   (and of course, we must further check that multiple solutions to the same `?α` agree). Here, we immediately replace the metavariable by its solution (more precisely, we update a reference in the metavariable, which was formerly pointing to nothing, represented here by `None`).
 
 In the last case, there is a subtlety: when abstracting, we must follow the de Bruijn discipline. Therefore we must α-convert the variables in `u` so that this is the case. This means that the value for `?α` will not be
 
