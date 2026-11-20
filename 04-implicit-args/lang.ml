@@ -23,7 +23,7 @@ module Context = struct
     {
       environment : V.environment; (** the evaluation environment *)
       level : int; (** level for creating fresh variables for abstractions *)
-      types : (string * V.ty) list; (** the typing environment *)
+      types : (string * [`Source | `Inserted] * V.ty) list; (** the typing environment (inserted variables cannot be referred to in the source) *)
       bds : [`Bound | `Defined] list; (** whether variables of the environment are defined or bound (this is used for metavariables which only depend on bound variables) *)
     }
 
@@ -41,24 +41,37 @@ module Context = struct
     {
       environment = (V.var ctx.level)::ctx.environment;
       level = ctx.level + 1;
-      types = (x,a)::ctx.types;
+      types = (x,`Source,a)::ctx.types;
       bds = `Bound::ctx.bds;
     }
 
-  (** Insert a new binding. *)
-  let new_binder = bind
+  (** Insert a new binding, which cannot be referred to by name (this is used
+      when inserting implicit abstractions). *)
+  let new_binder ctx x a =
+    {
+      environment = (V.var ctx.level)::ctx.environment;
+      level = ctx.level + 1;
+      types = (x,`Inserted,a)::ctx.types;
+      bds = `Bound::ctx.bds;
+    }
 
   (** Define a term to a given value and type. *)
   let define ctx x t a =
     {
       environment = t::ctx.environment;
       level = ctx.level + 1;
-      types = (x,a)::ctx.types;
+      types = (x,`Source,a)::ctx.types;
       bds = `Defined::ctx.bds;
     }
 
   (* close : (Γ : Con) → Val (Γ, x : A) B → Closure Γ A B *)
   let close ctx (t:value) : V.closure = ctx.environment, V.quote (ctx.level + 1) t
+
+  (** Names of the variables in the context. *)
+  let names ctx = List.map (fun (x,_,_) -> x) ctx.types
+
+  (** String representation of a value in the context. *)
+  let to_string ctx t = V.to_string ~vars:(names ctx) t
 end
 
 let fresh_meta (ctx:Context.t) =
@@ -66,15 +79,22 @@ let fresh_meta (ctx:Context.t) =
   InsertedMeta (m.id, ctx.bds)
 
 (** Apply all implicit arguments to metavariables. *)
-let rec insert ctx (t:term) (a:ty) =
+let rec insert' ctx (t:term) (a:ty) =
   match V.force a with
   | Pi((_,`Implicit,_),(env,b)) ->
     let m = fresh_meta ctx in
     let m' = V.eval ctx.environment m in
     let t = App (t,(`Implicit,m)) in
     let a = V.eval (m'::env) b in
-    insert ctx t a
+    insert' ctx t a
   | _ -> t, a
+
+(** Apply all implicit arguments to metavariables, unless the term is an
+    implicit abstraction. *)
+let insert ctx (t:term) (a:ty) =
+  match t with
+  | Abs ((_,`Implicit),_) -> t, a
+  | _ -> insert' ctx t a
 
 let rec infer (ctx:Context.t) (t:preterm) : term * ty =
   let pos = t.pos in
@@ -99,6 +119,7 @@ let rec infer (ctx:Context.t) (t:preterm) : term * ty =
     let a = V.eval ctx.environment a in
     let ctx' = Context.bind ctx x a in
     let t, b = infer ctx' t in
+    let t, b = insert ctx' t b in
     T.Abs ((x,i),t), V.Pi((x,i,a), Context.close ctx b)
   | App (t,(i,u)) ->
     let tpos = t.pos in
@@ -107,21 +128,28 @@ let rec infer (ctx:Context.t) (t:preterm) : term * ty =
       | `Implicit -> infer ctx t
       | `Explicit ->
         let t, a = infer ctx t in
-        insert ctx t a
+        insert' ctx t a
     in
     let a,(env,b) =
-      match c with
+      match V.force c with
       | Pi ((_,i',a),(env,b)) ->
-        if i <> i' then failwith "TODO: support implicit parameters";
+        if i <> i' then type_error tpos "icitness mismatch: term has type %s" (Context.to_string ctx c);
         a,(env,b)
-      | _ -> type_error tpos "term has type %s but a function was expected" @@ V.to_string c
+      | c ->
+        (* The type is not known to be a function type yet: we make it one. *)
+        let a = V.eval ctx.environment @@ fresh_meta ctx in
+        let b = fresh_meta (Context.bind ctx "x" a) in
+        let p = V.Pi (("x",i,a),(ctx.environment,b)) in
+        if not @@ V.unify ctx.level c p then type_error tpos "term has type %s but a function was expected" (Context.to_string ctx c);
+        a,(ctx.environment,b)
     in
     let u = check ctx u a in
     App (t,(i,u)), V.eval ((V.eval ctx.environment u)::env) b
   | Var x ->
     let n, a =
       let rec aux n = function
-        | (y,a)::l -> if x = y then (n,a) else aux (n+1) l
+        | (y,`Source,a)::l when x = y -> (n,a)
+        | _::l -> aux (n+1) l
         | [] -> type_error pos "unbound variable: %s" x
       in
       aux 0 ctx.types
@@ -153,7 +181,7 @@ and check (ctx:Context.t) (t:preterm) (a:ty) : term =
         let pos = a.pos in
         let a = check ctx a Type in
         let a = V.eval ctx.environment a in
-        if not @@ V.unify ctx.level a a' then type_error pos "expression has type %s but %s expected" (V.to_string a) (V.to_string a')
+        if not @@ V.unify ctx.level a a' then type_error pos "expression has type %s but %s expected" (Context.to_string ctx a) (Context.to_string ctx a')
       );
     let b = V.eval ((V.var ctx.level)::env) b in
     let t = check (Context.bind ctx x a') t b in
@@ -180,5 +208,5 @@ and check (ctx:Context.t) (t:preterm) (a:ty) : term =
   | _, a' ->
     let t, a = infer ctx t in
     let t, a = insert ctx t a in
-    if not @@ V.unify ctx.level a a' then type_error pos "expression has type %s but %s expected" (V.to_string a) (V.to_string a');
+    if not @@ V.unify ctx.level a a' then type_error pos "expression has type %s but %s expected" (Context.to_string ctx a) (Context.to_string ctx a');
     t
