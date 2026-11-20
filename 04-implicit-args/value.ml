@@ -29,33 +29,6 @@ and meta =
 
 type value = t
 
-(*
-(** Simple string representation. For debugging purposes only, otherwise use [to_string] below. *)
-let rec to_string_simple ?(pa=false) t =
-  let pa s = if pa then "(" ^ s ^ ")" else s in
-  let icit i t = match i with `Implicit -> "{" ^ to_string_simple t ^ "}" | `Explicit -> to_string_simple ~pa:true t in
-  let spine s = if s = [] then "" else " " ^ String.concat " " @@ List.rev_map (fun (i,t) -> icit i t) s in
-  match t with
-  | Abs ((x,_i),(_env,_t)) -> pa @@ Printf.sprintf "fun (%s) -> _" x
-  | Var (x,_i) -> "x" ^ string_of_int x
-  | Meta (m,s) ->
-    let m =
-      match m.value with
-      | Some t -> to_string_simple ~pa:true t
-      | None -> "?" ^ string_of_int m.id
-    in
-    m ^ spine s
-  | Pi ((x,_,a),_) -> pa @@ Printf.sprintf "(%s : %s) => _" x (to_string_simple a)
-  | Type -> "type"
-  | Unit -> "unit"
-  | U -> "()"
-  | Nat -> "nat"
-  | Ind_nat s -> pa ("ind_nat" ^ spine (List.map (fun t -> `Explicit, t) s))
-  | Z -> "Z"
-  | S None -> "S"
-  | S (Some t) -> pa ("S " ^ to_string_simple ~pa:true t)
-*)
-
 (* TODO: would be much more efficiently implemented by using Dynarray *)
 let metavariables = ref []
 
@@ -164,7 +137,9 @@ let rec quote l (t:t) : term =
 
 let normalize env t = quote 0 @@ eval env t
 
-let to_string ?(vars=[]) t = Term.to_string ~vars @@ quote 0 t
+(** String representation of a value in a context whose variables are named
+    vars (the most recent first). *)
+let to_string ?(vars=[]) t = Term.to_string ~vars @@ quote (List.length vars) t
 
 let string_of_meta vars m =
   let m = get_meta m in
@@ -182,6 +157,11 @@ let rec unify l (t:t) (u:t) =
     let b = eval ((var l)::env) b in
     let b' = eval ((var l)::env') b' in
     unify (l+1) b b'
+  | (Var _ | Meta _) as t, Abs ((_,i),(env,b)) ->
+    (* η-conversion *)
+    unify (l+1) (app t (i, var l)) (eval ((var l)::env) b)
+  | Abs ((_,i),(env,b)), ((Var _ | Meta _) as t) ->
+    unify (l+1) (eval ((var l)::env) b) (app t (i, var l))
   | Var (x,s), Var (x',s') ->
     unify_check (x = x');
     unify_spines l s s'
@@ -227,7 +207,8 @@ and unify_solve l m s t =
   in
   (* Apply a partial renaming to a value. Along the way, we also make sure that the metavariable does not occur in the term (occurs check). *)
   let rename m pren (t : value) =
-    let rec aux pren : value -> term = function
+    let rec aux pren (t : value) : term =
+      match force t with
       | Meta (m',s) ->
         unify_check (m <> m'); (* occurs check *)
         aux_spine pren (Term.Meta m'.id) s
