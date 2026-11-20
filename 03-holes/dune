@@ -15,3 +15,8 @@
  (alias runtest)
  (action (run ./eval.exe example.txt))
 )
+
+(rule
+ (alias runtest)
+ (action (run ./eval.exe infer-abs.txt))
+)

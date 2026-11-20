@@ -1,0 +1,5 @@
+-- the solution should be ?0 = λx0.(_ : x0) -> x1
+let id : (A : U) -> A -> A = \A x. x;
+let h : (B : U) -> B -> U = \B b. U;
+let t : (A : U) -> U = \A. h _ (id A);
+U

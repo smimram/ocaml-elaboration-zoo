@@ -1,0 +1,3 @@
+-- the type of the abstraction depends on A
+let f : (A : U) -> A -> A = \A x. (\y. y) x;
+f
