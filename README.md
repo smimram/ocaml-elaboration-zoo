@@ -2,7 +2,7 @@
 
 This is mostly a translation of [András Kovács](https://andraskovacs.github.io/)' [elaboration zoo](https://github.com/AndrasKovacs/elaboration-zoo), that I made for learning elaboration in dependent type theory.
 
-The morale is that, in order to be efficient (both in terms of development speed and execution), one should
+The moral is that, in order to be efficient (both in terms of development speed and execution), one should
 
 - perform normalization by evaluation (in order not to have to deal with substitution and α-conversion),
 - use de Bruijn indices (using variable names is too slow in practice).
@@ -25,7 +25,7 @@ Following Kovács, we provide various implementations, which are more and more e
      If evaluating λ-terms is all you wanted, and you wanted to do it quickly, this is the way to proceed. There are two limitations of this implementation however.
      
      1. Closures are taken care of by OCaml, which means that we do not have any control over those. In order to implement metavariables, we will need that, which is easily taken care of (see next point).
-     2. We use variable names all the way. This means that in order to look for the value of a variable in an environment we need to look for each element and compare a string until we find the right one, and this is quite inefficient. All we needed is to store at which position in the environment we can find the value, which is the idea of de Buijn indices.
+     2. We use variable names all the way. This means that in order to look for the value of a variable in an environment we need to look for each element and compare a string until we find the right one, and this is quite inefficient. All we needed is to store at which position in the environment we can find the value, which is the idea of de Bruijn indices.
      
    - [01-eval-closures-names](01-eval-closures-names). Abstractions are evaluated to formal abstractions with closures where variables are named with strings, i.e. values are
    
@@ -61,3 +61,13 @@ Following Kovács, we provide various implementations, which are more and more e
     and have the typechecker guess that `_` (the metavariable) has to be `ℕ`.
 
     - [03-holes](03-holes)
+
+4. _Implicit arguments_. Arguments can be declared implicit, as in
+
+    ```
+    id : {A : U} → A → A
+    ```
+
+    and are then filled in with metavariables during elaboration, so that we can write `id 3`.
+
+    - [04-implicit-args](04-implicit-args)
