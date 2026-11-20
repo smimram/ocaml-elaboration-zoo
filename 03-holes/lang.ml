@@ -68,18 +68,16 @@ end
 (** A value. *)
 type t =
   | VApp of int * t list (** A neutral value consisting of a variable applied to a list of terms (the first application is the one at the end of the list, ie xᵢt₁…tₙ is represented by (i,[tₙ;…;t₁])). *)
-  | MApp of metavariable * t list (** A netural value consisting of a metavariable applied to terms (as above, the top of the list is the outermost application).  *)
+  | MApp of metavariable * t list (** A neutral value consisting of a metavariable applied to terms (as above, the top of the list is the outermost application).  *)
   | Abs of environment * string * Term.t (** A λ-abstraction in a closure. *)
   | Pi of environment * string * t * Term.t (** A Π-type in a closure. *)
   | U (** The universe. *)
 
-(** A metavariable consisting of a its name (an integer) and its value when it is known. *)
+(** A metavariable consisting of its name (an integer) and its value when it is known. *)
 and metavariable = int * t option ref
 
-(** An environment: the boolean indicates if the variable was created by a λ-abstraction (as opposed to a let), which is useful to know whether we should keep this value for metavariables. *)
+(** An environment. *)
 and environment = t list
-
-and closure = environment * t
 
 let rec to_string ?(environment=false) = function
   | VApp (i, l) -> List.fold_right (fun t s -> Printf.sprintf "%s %s" s (to_string t)) l (Printf.sprintf "x%d" i)
@@ -116,7 +114,7 @@ let metavariable =
 let rec eval (env : environment) (t : Term.t) : t =
   (* Printf.printf "eval: %s in [%s]\n%!" (Term.to_string t) (List.map to_string env |> String.concat ", "); *)
   match t with
-  | Var i -> (try List.nth env i with _ -> failwith ("Evaluation: inexistent variable " ^ string_of_int i))
+  | Var i -> (try List.nth env i with Failure _ | Invalid_argument _ -> failwith ("Evaluation: inexistent variable " ^ string_of_int i))
   | Abs (x, t) -> Abs (env, x, t)
   | App (t, u) ->
     let u = eval env u in
@@ -135,20 +133,11 @@ let rec eval (env : environment) (t : Term.t) : t =
     eval (t::env) u
   | Meta m -> MApp (metavariable m, [])
   
-(** Create a fresh variable name among ns based on x. *)
-let rec fresh ns x =
-  if x = "_" then "_"
-  else if List.mem x ns then fresh ns (x^"'")
-  else x
-
 (** Reify normal form. *)
 let rec quote l : t -> Term.t = function
   | VApp (i, uu) ->
-    let rec aux (t : Term.t) = function
-      | u::uu -> aux (App (t, quote l u)) uu
-      | [] -> t
-    in
-    aux (Var (l-1 - i)) uu
+    (* The outermost argument is the first one in the list. *)
+    List.fold_right (fun u t -> Term.App (t, quote l u)) uu (Var (l-1 - i))
   | MApp ((i,_), tt) ->
     let tt = List.rev_map (quote l) tt in
     Term.apps (Meta i) tt
@@ -209,11 +198,12 @@ let rec unify l t u =
     let t = eval ((var l)::env) t in
     let u = eval ((var l)::env') u in
     unify (l+1) t u
-  | Abs (env, _, t), u ->
+  | Abs (env, _, t), ((VApp _ | MApp _) as u) ->
+    (* η-conversion *)
     let t = eval ((var l)::env) t in
     let u = app u (var l) in
     unify (l+1) t u
-  | _, Abs _ -> unify l u t
+  | (VApp _ | MApp _), Abs _ -> unify l u t
   | Pi (env, _, a, b), Pi (env', _, a', b') ->
     unify l a a';
     (* Printf.printf "b: %s vs %s\n%!" (Term.to_string b) (Term.to_string b'); *)
@@ -222,43 +212,47 @@ let rec unify l t u =
     let b' = eval ((var l)::env') b' in
     unify (l+1) b b'
   | VApp (i, tt), VApp (i', tt') ->
-    if i <> i' then raise Unification;
+    if i <> i' || List.length tt <> List.length tt' then raise Unification;
     List.iter2 (unify l) tt tt'
   | MApp (m, tt), MApp (m', tt') when fst m = fst m' ->
+    if List.length tt <> List.length tt' then raise Unification;
     List.iter2 (unify l) tt tt'
   | MApp ((m,r), tt), u ->
-    (* Ensure that we have only variables and that no variable appears twice. *)
-    let rec check = function
-      | (VApp (_, []) as x) :: tt -> if List.mem x tt then raise Unification else check tt
-      | _::_ -> raise Unification
-      | [] -> ()
-    in
-    check tt;
+    (* The metavariable is applied to n arguments x₀ … xₙ₋₁, so that tt is
+       [xₙ₋₁; …; x₀]. We ensure that those are pairwise distinct variables and
+       map each of them to its level in the context of the solution (i.e. xᵢ is
+       mapped to i). *)
+    let n = List.length tt in
     let s =
-      List.mapi
-        (fun i t ->
+      List.fold_left
+        (fun (k, s) t ->
            match force t with
-           | VApp (j, []) -> j, i
+           | VApp (j, []) when not (List.mem_assoc j s) -> k-1, (j, k)::s
            | _ -> raise Unification
-        ) tt
+        ) (n-1, []) tt
+      |> snd
     in
-    let rec subst l s t =
+    (* Translate a value at level l into a term in the context of the solution,
+       which has d variables, s mapping levels of the former to levels of the
+       latter. We also perform the occurs check along the way. *)
+    let rec subst l d s t =
       match force t with
       | VApp (i, uu) ->
         let i =
           match List.assoc_opt i s with
-          | Some i -> i
+          | Some i -> d-1 - i
           | None -> raise Unification (* variable escaping scope *)
         in
-        List.fold_right (fun u t -> Term.App (t, subst l s u)) uu (Term.Var i)
-      | MApp ((m, _), uu) ->
-        List.fold_right (fun u t -> Term.App (t, subst l s u)) uu (Term.Meta m)
+        List.fold_right (fun u t -> Term.App (t, subst l d s u)) uu (Term.Var i)
+      | MApp ((m', _), uu) ->
+        if m' = m then raise Unification; (* occurs check *)
+        List.fold_right (fun u t -> Term.App (t, subst l d s u)) uu (Term.Meta m')
       | Abs (env, x, t) ->
-        let t = eval ((var l)::env) t |> subst (l+1) ((l,List.length s)::s) in
+        let t = eval ((var l)::env) t |> subst (l+1) (d+1) ((l,d)::s) in
         Abs (x, t)
       | Pi (env, x, a, b) ->
-        let a = subst l s a in
-        let b = eval ((var l)::env) b |> subst (l+1) ((l,List.length s)::s) in
+        let a = subst l d s a in
+        let b = eval ((var l)::env) b |> subst (l+1) (d+1) ((l,d)::s) in
         Pi (x, a, b)
       | U -> U
     in
@@ -269,24 +263,18 @@ let rec unify l t u =
       in
       aux 0
     in
-    let solution = abss (List.length tt) (subst l s u) |> eval [] in
+    let solution = abss n (subst l n s u) |> eval [] in
     (* Printf.printf "solution of %s = %s is %s\n%!" (to_string t) (to_string u) (to_string solution); *)
     r := Some solution
   | _, MApp _ -> unify l u t
   | U, U -> ()
   | _ -> raise Unification
 
-let string_of_env env tenv menv l =
-  assert (List.length env = l);
-  assert (List.length tenv = l);
-  assert (List.length menv = l);
-  (* "[" ^ (List.map2 (fun (b,t) (x,a) -> Printf.sprintf "%s%s = %s : %s" (if b then "+" else "") x (to_string t) (to_string a)) (List.combine menv env) tenv |> String.concat ", ") ^ "]" *)
-  ""
+exception Typing of string
 
 (** Check that a raw term has a given type and transform it into a term along the way. The environment env binds variables to values, the typing environment tenv provides the type of variables and menv indicates whether we should keep a variable as argument for metavariables (currently we only keep λ-abstractions but not variables declared with let). *)
 let rec check env tenv menv l (t : RawTerm.t) a : Term.t =
-  (* Printf.printf "check %s : %s %s\n%!" (RawTerm.to_string t) (to_string ~environment:true a) (string_of_env env tenv menv l); *)
-  match t, a with
+  match t, force a with
   | Abs (x, t), Pi (env', _, a, b) ->
     let b = eval ((var l)::env') b in
     let t = check ((var l)::env) ((x,a)::tenv) (true::menv) (l+1) t b in
@@ -310,16 +298,15 @@ let rec check env tenv menv l (t : RawTerm.t) a : Term.t =
 
 (** Infer the type of a term and convert the raw term to a term along the way. *)
 and infer env tenv menv l (t : RawTerm.t) : Term.t * t =
-  (* Printf.printf "infer %s %s\n%!" (RawTerm.to_string t) (string_of_env env tenv menv l); *)
   match t with
   | Var x ->
     let rec aux i = function
       | (x',a)::l -> if x' = x then Term.Var i, a else aux (i+1) l
-      | [] -> raise Not_found
+      | [] -> raise (Typing ("unbound variable " ^ x))
     in
     aux 0 tenv
   | Abs (x, t) ->
-    let a = eval env (Term.metavariable ()) in
+    let a = fresh_metavariable env tenv menv l in
     let t, b = infer ((var l)::env) ((x,a)::tenv) (true::menv) (l+1) t in
     let b = quote (l+1) b in
     Abs (x, t), Pi(env, x, a, b)
@@ -338,9 +325,10 @@ and infer env tenv menv l (t : RawTerm.t) : Term.t * t =
       | c ->
         let a = fresh_metavariable env tenv menv l in
         let b = fresh_metavariable ((var l)::env) (("x",a)::tenv) (true::menv) (l+1) in
-        unify l c (Pi (env, "x", a, quote (l+1) b));
+        let b = quote (l+1) b in
+        unify l c (Pi (env, "x", a, b));
         let u = check env tenv menv l u a in
-        App(t, u), b
+        App(t, u), eval ((eval env u)::env) b
     )
   | Pi (x, a, b) ->
     let a = check env tenv menv l a U in
@@ -357,6 +345,8 @@ and infer env tenv menv l (t : RawTerm.t) : Term.t * t =
     let u, b = infer (vt::env) ((x,va)::tenv) (false::menv) (l+1) u in
     Let (x, a, t, u), b
   | Hole ->
-    (* TODO: where is it enforced that the filler for the type is actually the type for the filler for the term?? *)
-    let a = eval env (Term.metavariable ()) in
-    Term.metavariable (), a
+    (* Metavariables are not typed (see the README), so nothing relates the
+       metavariable for the type to the one for the term. *)
+    let a = fresh_metavariable env tenv menv l in
+    let t = quote l (fresh_metavariable env tenv menv l) in
+    t, a
