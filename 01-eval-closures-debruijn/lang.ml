@@ -12,7 +12,7 @@ module Term = struct
   let rec to_string = function
     | Var i -> string_of_int i
     | App (t, u) -> "(" ^ to_string t ^ " " ^ to_string u ^ ")"
-    | Abs t -> Printf.sprintf "λ %s" (to_string t)
+    | Abs t -> Printf.sprintf "(λ %s)" (to_string t)
     | Let (t, u) -> Printf.sprintf "let %s in\n%s" (to_string t) (to_string u)
 end
 
