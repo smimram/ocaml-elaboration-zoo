@@ -67,7 +67,7 @@ idents:
   | IDENT { [$1] }
 
 pi_arg:
-  | LPAR idents opt_type RPAR { List.map (fun x -> x,`Explicit,$3) $2 }
+  | LPAR idents COLON term RPAR { List.map (fun x -> x,`Explicit,Some $4) $2 }
   | LACC idents opt_type RACC { List.map (fun x -> x,`Implicit,$3) $2 }
 
 pi_args:
