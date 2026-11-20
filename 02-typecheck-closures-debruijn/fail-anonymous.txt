@@ -1,0 +1,6 @@
+-- anonymous variables are not all the same
+let Eq : (A : U) -> A -> A -> U = \A x y. (P : A -> U) -> P x -> P y in
+let refl : (A : U) -> (x : A) -> Eq A x x = \A x P px. px in
+let k : (A : U) -> A -> U = \A a. U in
+let bad : U -> U -> U = \x y. k (Eq U x y) (refl U x) in
+bad
