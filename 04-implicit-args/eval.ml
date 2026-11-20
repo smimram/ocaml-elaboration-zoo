@@ -29,7 +29,7 @@ let () =
   Printf.printf "Parsing... done:\n%s\n\n%!" (Preterm.to_string t);
   Printf.printf "Typechecking... \n%!";
   let t, a = Lang.infer Lang.Context.empty t in
-  let mv = String.concat "\n" @@ List.mapi (fun i t -> Printf.sprintf "?%d = %s" i (Option.fold ~none:"?" ~some:Value.to_string t.Value.value)) !Value.metavariables in
+  let mv = String.concat "\n" @@ List.rev_map (fun m -> Printf.sprintf "?%d = %s" m.Value.id (Option.fold ~none:"?" ~some:Value.to_string m.Value.value)) !Value.metavariables in
   Printf.printf "done: %s\n%s\n%s\n\n%!" (Value.to_string a) mv (Term.to_string t);
   Printf.printf "Normalizing... \n%!";
   let t = Value.normalize [] t in
