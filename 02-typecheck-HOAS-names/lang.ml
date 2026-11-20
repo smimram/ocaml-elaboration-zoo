@@ -43,19 +43,19 @@ and ty = t
 (** An environment. *)
 and environment = (string * t) list
 
-(** String representation of a value. *)
-let rec to_string = function
-  | Var x -> x
-  | App (t, u) -> Printf.sprintf "(%s %s)" (to_string t) (to_string u)
-  | Abs (x, t) -> Printf.sprintf "λ%s.%s" x (to_string (t (Var x)))
-  | Pi (x, a, t) -> Printf.sprintf "(%s : %s) → %s" x (to_string a) (to_string (t (Var x)))
-  | U -> "𝒰"
+(** Names in use in an environment: the source names, as well as the names of
+    the variables generated for bound variables (environments map a bound source
+    variable to a generated variable). *)
+let names env =
+  List.concat_map (fun (x, v) -> match v with Var y -> [x; y] | _ -> [x]) env
 
-(** Generate a fresh variable name looking like x. *)
-let rec fresh env x =
-  if x = "_" then "_" else
-  if List.mem_assoc x env then fresh env (x^"'")
-  else x
+(** Generate a fresh variable name looking like x. Note that this has to be
+    done even for "_", since otherwise all anonymous variables would be
+    identified. *)
+let fresh env x =
+  let ns = names env in
+  let rec aux x = if List.mem x ns then aux (x^"'") else x in
+  aux x
 
 (** Compute the weak head normal form of a term (which is a value). *)
 let rec eval (env : environment) : Term.t -> t = function
@@ -90,6 +90,9 @@ let rec quote env : t -> Term.t = function
 let normalize env t =
   eval env t |> quote env
 
+(** String representation of a value in a given environment. *)
+let to_string_in env t = Term.to_string (quote env t)
+
 (** Type-directed βη-conversion. *)
 let rec conv env (t:t) (u:t) =
   (* Printf.printf "conv: %s = %s\n%!" (to_string t) (to_string u); *)
@@ -103,8 +106,10 @@ let rec conv env (t:t) (u:t) =
     conv ((x, Var x)::env) (t (Var x)) (t' (Var x))
   | Abs (x, t), u ->
     (* η-conversion *)
+    let x = fresh env x in
     conv ((x, Var x)::env) (t (Var x)) (App (u, Var x))
   | t, Abs (x, u) ->
+    let x = fresh env x in
     conv ((x, Var x)::env) (App (t, Var x)) (u (Var x))
   | Var x, Var x' -> x = x'
   | App (t, u), App (t', u') ->
@@ -114,27 +119,23 @@ let rec conv env (t:t) (u:t) =
 (** A typing error. *)
 exception Typing of string
 
-(** We are not smart enough to infer the type. *)
-exception Inference
 
 (** Check that a term has given type in given environments for terms and types. *)
 let rec check env tenv (t : Term.t) (a : ty) =
   (* Printf.printf "check: %s : %s\n%!" (Term.to_string t) (to_string a); *)
   match t, a with
-  | Abs (x, t), Pi (x', a, b) ->
-    let x' = fresh env x' in
+  | Abs (x, t), Pi (_, a, b) ->
+    let x' = fresh env x in
     check ((x, Var x')::env) ((x, a)::tenv) t (b (Var x'))
   | Let (x, a, t, u), b ->
     check env tenv a U;
-    Printf.printf "** type of let of type U\n%!";
     let a = eval env a in
     check env tenv t a;
-    Printf.printf "** let done\n%!";
     check ((x, eval env t)::env) ((x, a)::tenv) u b
   | _ ->
     (* The term cannot be checked, try to infer instead. *)
     let b = infer env tenv t in
-    if not (conv env b a) then raise (Typing (Printf.sprintf "got %s but %s expected" (to_string b) (to_string a)))
+    if not (conv env b a) then raise (Typing (Printf.sprintf "got %s but %s expected" (to_string_in env b) (to_string_in env a)))
 
 (** Infer the type for a term. *)
 and infer env tenv t : ty =
@@ -144,7 +145,7 @@ and infer env tenv t : ty =
     (
       match List.assoc_opt x tenv with
       | Some a -> a
-      | None -> failwith ("Unbound variable " ^ x)
+      | None -> raise (Typing ("unbound variable " ^ x))
     )
   | U -> U (* type in type *)
   | App (t, u) ->
@@ -154,12 +155,13 @@ and infer env tenv t : ty =
       | Pi (_, a, b) ->
         check env tenv u a;
         b (eval env u)
-      | _ -> raise (Typing (Printf.sprintf "got %s but Π-type expected" (to_string a)))
+      | _ -> raise (Typing (Printf.sprintf "got %s but Π-type expected" (to_string_in env a)))
     )
-  | Abs _ -> raise Inference
+  | Abs _ -> raise (Typing "cannot infer the type of an abstraction")
   | Pi (x, a, b) ->
     check env tenv a U;
-    check ((x, Var x)::env) ((x, eval env a)::tenv) b U;
+    let x' = fresh env x in
+    check ((x, Var x')::env) ((x, eval env a)::tenv) b U;
     U
   | Let (x, a, t, u) ->
     check env tenv a U;
