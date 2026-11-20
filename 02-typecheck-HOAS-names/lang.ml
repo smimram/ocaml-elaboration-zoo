@@ -22,6 +22,10 @@ module Term = struct
     | Abs (x, t) -> Printf.sprintf "(λ%s.%s)" x (to_string t)
     | Let (x, t, a, u) -> Printf.sprintf "let %s : %s = %s;\n%s" x (to_string t) (to_string a) (to_string u)
     | U -> "𝒰"
+    | Pi (x, a, t) when x <> "" && x.[0] = '_' ->
+      (* Anonymous variable: non-dependent arrow. *)
+      let a = match a with Pi _ -> "(" ^ to_string a ^ ")" | _ -> to_string a in
+      Printf.sprintf "%s → %s" a (to_string t)
     | Pi (x, a, t) -> Printf.sprintf "(%s : %s) → %s" x (to_string a) (to_string t)
 end
 
