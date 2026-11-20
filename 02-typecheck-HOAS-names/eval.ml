@@ -33,7 +33,12 @@ let () =
   close_in ic;
   Printf.printf "Parsing... done:\n%s\n\n%!" (Term.to_string t);
   Printf.printf "Typechecking... \n%!";
-  let a = infer [] [] t in
+  let a =
+    try infer [] [] t
+    with Typing e ->
+      Printf.eprintf "Typing error: %s\n%!" e;
+      exit 1
+  in
   Printf.printf "done: %s\n\n%!" (Term.to_string (quote [] a));
   Printf.printf "Normalizing... \n%!";
   let t = normalize [] t in
