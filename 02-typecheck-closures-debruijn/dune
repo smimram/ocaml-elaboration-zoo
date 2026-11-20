@@ -14,3 +14,35 @@
  (alias runtest)
  (action (run ./eval.exe ex0.txt))
 )
+
+(rule
+ (alias runtest)
+ (action (run ./eval.exe ex1.txt))
+)
+
+(rule
+ (alias runtest)
+ (action (run ./eval.exe ex2.txt))
+)
+
+(rule
+ (alias runtest)
+ (action (run ./eval.exe ex3.txt))
+)
+
+(rule
+ (alias runtest)
+ (action (run ./eval.exe arrow.txt))
+)
+
+; This one should be rejected.
+(rule
+ (alias runtest)
+ (action (ignore-outputs (with-accepted-exit-codes 1 (run ./eval.exe fail-shadow.txt))))
+)
+
+; This one should be rejected.
+(rule
+ (alias runtest)
+ (action (ignore-outputs (with-accepted-exit-codes 1 (run ./eval.exe fail-anonymous.txt))))
+)

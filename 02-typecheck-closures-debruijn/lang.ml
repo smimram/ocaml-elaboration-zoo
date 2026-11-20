@@ -18,6 +18,7 @@ module RawTerm = struct
     | Abs (x, t) -> Printf.sprintf "(λ%s.%s)" x (to_string t)
     | Let (x, t, a, u) -> Printf.sprintf "let %s : %s = %s in\n%s" x (to_string t) (to_string a) (to_string u)
     | U -> "𝒰"
+    | Pi ("_", a, t) -> Printf.sprintf "(%s → %s)" (to_string a) (to_string t)
     | Pi (x, a, t) -> Printf.sprintf "((%s : %s) → %s)" x (to_string a) (to_string t)
 
   (** Abstract over multiple variables. *)
@@ -25,13 +26,6 @@ module RawTerm = struct
     match xx with
     | [x] -> Abs (x, t)
     | x::xx -> Abs(x, abs xx t)
-    | [] -> assert false
-
-  (** Pi-abstract over multiple variables. *)
-  let rec pi xx a b =
-    match xx with
-    | [x] -> Pi (x, a, b)
-    | x::xx -> Pi (x, a, pi xx a b)
     | [] -> assert false
 end
 
@@ -54,6 +48,9 @@ module Term = struct
     | Abs (x, t) -> Printf.sprintf "(λ%s.%s)" x (to_string t)
     | Let (x, t, a, u) -> Printf.sprintf "let %s : %s = %s;\n%s" x (to_string t) (to_string a) (to_string u)
     | U -> "𝒰"
+    | Pi ("_", a, t) ->
+      let a = match a with Pi _ -> "(" ^ to_string a ^ ")" | _ -> to_string a in
+      Printf.sprintf "%s → %s" a (to_string t)
     | Pi (x, a, t) -> Printf.sprintf "(%s : %s) → %s" x (to_string a) (to_string t)
 end
 
@@ -70,8 +67,6 @@ and ty = t
 
 (** An environment. *)
 and environment = t list
-
-and closure = environment * t
 
 (** String representation of a value. *)
 let rec to_string = function
@@ -141,10 +136,9 @@ let rec conv l t u =
   | _ -> false
 
 (** A typing error. *)
-exception Typing
+exception Typing of string
 
-(** We are not smart enough to infer the type. *)
-exception Inference
+let typing_error fmt = Printf.ksprintf (fun s -> raise (Typing s)) fmt
 
 (** Check that a term has given type in given environments for terms and
     types. In passing, we translate the term in raw presentation into a term in
@@ -166,7 +160,7 @@ let rec check env tenv l (t : RawTerm.t) (a : ty) : Term.t =
   | _ ->
     (* The term cannot be checked, try to infer instead. *)
     let t, b = infer env tenv l t in
-    if not (conv l b a) then raise Typing;
+    if not (conv l b a) then typing_error "got %s but %s expected" (Term.to_string (quote l b)) (Term.to_string (quote l a));
     t
 
 (** Infer the type for a term and generate the term associated to the raw term along the way. *)
@@ -176,7 +170,7 @@ and infer env tenv l (t : RawTerm.t) : Term.t * ty =
   | Var x ->
     let rec aux i = function
       | (x',a)::l -> if x' = x then Term.Var i, a else aux (i+1) l
-      | [] -> raise Not_found
+      | [] -> typing_error "unbound variable %s" x
     in
     aux 0 tenv
   | U -> U, U (* type in type *)
@@ -188,9 +182,9 @@ and infer env tenv l (t : RawTerm.t) : Term.t * ty =
         let u = check env tenv l u a in
         let vu = eval env u in
         App (t, u), eval (vu::env') b
-      | _ -> raise Typing
+      | a -> typing_error "got %s but Π-type expected" (Term.to_string (quote l a))
     )
-  | Abs _ -> raise Inference
+  | Abs _ -> typing_error "cannot infer the type of an abstraction"
   | Pi (x, a, b) ->
     let a = check env tenv l a U in
     let va = eval env a in
