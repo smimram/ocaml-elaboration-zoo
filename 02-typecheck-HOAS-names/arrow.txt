@@ -1,0 +1,4 @@
+-- application binds tighter than arrows
+let Eq : (A : U) -> A -> A -> U = \A x y. (P : A -> U) -> P x -> P y in
+let refl : (A : U) -> (x : A) -> Eq A x x = \A x P px. px in
+refl

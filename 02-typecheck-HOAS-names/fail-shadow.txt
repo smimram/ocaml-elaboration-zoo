@@ -1,0 +1,3 @@
+-- the two A are different
+let bad : (A : U) -> A -> (A : U) -> A = \X x Y. x in
+bad
